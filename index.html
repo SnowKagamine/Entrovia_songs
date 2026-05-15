@@ -3,71 +3,295 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>歌回搜尋中心 - Netlify 版</title>
+  <title>歌回小助手 | 觀眾專屬歌單</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* 這裡延用之前的灰階莫蘭迪風格 CSS ... */
-    :root { --primary: #333; --bg: #f8f9fa; --card: #ffffff; }
-    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; }
-    nav { background: var(--primary); padding: 15px; color: white; text-align: center; }
-    .nav-btn { background: none; border: 1px solid #666; color: white; padding: 8px 20px; cursor: pointer; margin: 0 5px; border-radius: 20px; }
-    .nav-btn.active { background: white; color: var(--primary); }
-    .container { max-width: 900px; margin: 20px auto; padding: 0 15px; }
-    .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
-    input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
-    /* 卡片與表格樣式省略，與之前相同 */
+    :root {
+      --primary: #333;
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --border: #e0e0e0;
+      --text-main: #222;
+      --text-sub: #666;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: var(--bg);
+      margin: 0;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    nav {
+      background: var(--primary);
+      padding: 5px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .nav-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    .nav-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      padding: 15px 25px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    .nav-btn.active {
+      color: white;
+      border-bottom: 3px solid white;
+    }
+
+    .main-content {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .view-section {
+      display: none;
+    }
+    .view-section.active {
+      display: block;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      background: var(--card);
+      padding: 10px;
+      border-radius: 50px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 30px;
+      font-size: 16px;
+      outline: none;
+    }
+    .btn-search {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    .btn-search:hover {
+      background: #000;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .results-table th { background: #f1f1f1; padding: 15px; text-align: left; font-size: 14px; color: var(--text-sub); }
+    .results-table td { padding: 18px 15px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .song-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 20px;
+      position: relative;
+      transition: 0.3s;
+      display: flex;
+      flex-direction: column;
+    }
+    .song-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      border-color: #bbb;
+    }
+    .badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #f0f0f0;
+      color: #444;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .song-card h3 { margin: 0 0 5px 0; font-size: 18px; color: #111; padding-right: 60px; }
+    .song-card p { margin: 0; font-size: 14px; color: var(--text-sub); }
+    
+    .card-footer {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px dashed #eee;
+    }
+    .play-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      background: #f1f1f1;
+      color: var(--primary);
+      text-decoration: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 14px;
+      transition: 0.2s;
+      box-sizing: border-box;
+    }
+    .play-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    #loader { display: none; text-align: center; padding: 50px; font-weight: bold; color: #999; }
+    .empty-msg { text-align: center; color: #999; padding: 40px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 600px) {
+      .search-bar { flex-direction: column; border-radius: 15px; }
+      .results-table th:nth-child(1), .results-table td:nth-child(1) { display: none; }
+    }
   </style>
 </head>
 <body>
 
 <nav>
-  <button id="btn-search" class="nav-btn active">歌曲搜尋</button>
-  <button id="btn-summary" class="nav-btn">熱門排行</button>
+  <div class="nav-container">
+    <button id="nav-search" class="nav-btn active" onclick="switchView('search-view')">🔍 歌曲搜尋</button>
+    <button id="nav-summary" class="nav-btn" onclick="switchView('summary-view')">🏆 熱門排行</button>
+  </div>
 </nav>
 
-<div class="container">
-  <div id="search-section">
-    <div class="search-box">
-      <input type="text" id="keyword" placeholder="輸入歌曲或原唱...">
-      <button onclick="handleSearch()" style="padding:10px 20px; cursor:pointer;">搜尋</button>
+<div class="main-content">
+  <section id="search-view" class="view-section active">
+    <div class="search-bar">
+      <input type="text" id="keyword" placeholder="輸入歌曲名稱或原唱關鍵字..." onkeypress="if(event.key==='Enter') handleSearch()">
+      <button class="btn-search" onclick="handleSearch()">搜尋</button>
     </div>
-    <div id="search-output"></div>
-  </div>
+    <div id="search-results"></div>
+  </section>
 
-  <div id="summary-section" style="display:none;">
-    <div id="summary-output" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:15px;"></div>
-  </div>
+  <section id="summary-view" class="view-section">
+    <div class="summary-grid" id="summary-results"></div>
+  </section>
+
+  <div id="loader">處理中，請稍候...</div>
 </div>
 
 <script>
-  // ⚠️ 請在此填入你的 Google Apps Script 部署網址
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyukn-5Vy0IgELZj5HHzxVTWrhSdSuxOc18o-y1KgXlZifXWmNm03MvtBkx_QVi9ALiGg/exec";
 
-  async function fetchData(action, query = "") {
-    const loader = document.createElement('div');
-    loader.innerText = "讀取中...";
-    document.body.appendChild(loader);
+  async function switchView(viewId) {
+    document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    
+    document.getElementById(viewId).classList.add('active');
+    if(viewId === 'search-view') document.getElementById('nav-search').classList.add('active');
+    if(viewId === 'summary-view') {
+      document.getElementById('nav-summary').classList.add('active');
+      loadSummary();
+    }
+  }
 
+  async function apiCall(action, params = "") {
+    showLoader(true);
     try {
-      const url = `${GAS_URL}?action=${action}&q=${encodeURIComponent(query)}`;
-      const response = await fetch(url);
+      const response = await fetch(`${GAS_URL}?action=${action}${params}`);
       const data = await response.json();
-      document.body.removeChild(loader);
+      showLoader(false);
       return data;
     } catch (e) {
-      console.error("讀取失敗", e);
-      alert("資料讀取失敗，請確認 GAS 部署是否正確。");
+      showLoader(false);
+      console.error("API Error:", e);
+      alert("讀取失敗，請確認 GAS 是否已發布為「所有人」存取權限。");
     }
   }
 
   async function handleSearch() {
-    const q = document.getElementById('keyword').value;
+    const q = document.getElementById('keyword').value.trim();
     if (!q) return;
-    const data = await fetchData('search', q);
-    // 渲染搜尋結果表格邏輯...
-    document.getElementById('search-output').innerHTML = data.length ? "渲染結果..." : "查無資料";
+    const results = await apiCall('search', `&q=${encodeURIComponent(q)}`);
+    renderSearch(results);
   }
 
-  // 切換標籤邏輯...
+  function renderSearch(results) {
+    const container = document.getElementById('search-results');
+    if (!results || results.length === 0) {
+      container.innerHTML = '<div class="empty-msg">查無資料，換個關鍵字試試看？</div>';
+      return;
+    }
+    
+    let html = `<table class="results-table">
+      <thead><tr><th>日期 / 標題</th><th>歌曲 / 原唱</th><th>連結</th></tr></thead>
+      <tbody>`;
+    
+    results.forEach(r => {
+      html += `<tr>
+        <td style="color:#888; font-size:12px;"><strong>${r.date}</strong><br>${r.title}</td>
+        <td><strong>${r.song}</strong><br><small style="color:#999">${r.artist}</small></td>
+        <td><a href="${r.link}" target="_blank" style="color:#333; font-weight:bold; text-decoration:none;">🔗 播放</a></td>
+      </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  async function loadSummary() {
+    const container = document.getElementById('summary-results');
+    if (container.children.length > 0) return;
+    const data = await apiCall('summary');
+    renderSummary(data);
+  }
+
+  function renderSummary(data) {
+    const container = document.getElementById('summary-results');
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="empty-msg">暫無排行資料。</div>';
+      return;
+    }
+
+    container.innerHTML = data.map(s => `
+      <div class="song-card">
+        <div class="badge">演唱 ${s.count} 次</div>
+        <h3>${s.name}</h3>
+        <p>${s.artist}</p>
+        <div class="card-footer">
+          <div style="font-size:11px; color:#aaa; margin-bottom:10px;">最近：${s.lastTitle}</div>
+          <a href="${s.lastLink}" target="_blank" class="play-btn">▶ 播放最近版本</a>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function showLoader(show) {
+    document.getElementById('loader').style.display = show ? 'block' : 'none';
+  }
 </script>
+
 </body>
 </html>
