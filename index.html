@@ -267,7 +267,21 @@
     const data = await apiCall('summary');
     renderSummary(data);
   }
-
+// 新增：跳轉至搜尋功能
+  function jumpToSearch(songName) {
+    // 1. 切換到搜尋分頁
+    switchView('search-view');
+    
+    // 2. 找到搜尋框並填入歌名
+    const searchInput = document.getElementById('keyword');
+    searchInput.value = songName;
+    
+    // 3. 自動觸發搜尋按鈕
+    handleSearch();
+    
+    // 4. (選用) 滾動到頁面頂部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   function renderSummary(data) {
     const container = document.getElementById('summary-results');
     if (!data || data.length === 0) {
@@ -280,9 +294,16 @@
         <div class="badge">演唱 ${s.count} 次</div>
         <h3>${s.name}</h3>
         <p>${s.artist}</p>
-        <div class="card-footer">
-          <div style="font-size:11px; color:#aaa; margin-bottom:10px;">最近：${s.lastTitle}</div>
+        <div class="card-footer" style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size:11px; color:#aaa; margin-bottom:2px;">最近：${s.lastTitle}</div>
+          
+          <!-- 原有的播放最近版本按鈕 -->
           <a href="${s.lastLink}" target="_blank" class="play-btn">▶ 播放最近版本</a>
+          
+          <!-- 新增的跳轉搜尋按鈕 -->
+          <button onclick="jumpToSearch('${s.name}')" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; background:white; cursor:pointer; font-size:13px; font-weight:bold; color:#666; transition:0.2s;">
+            🔍 查看所有演唱紀錄
+          </button>
         </div>
       </div>
     `).join('');
