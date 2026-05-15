@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>歌回搜尋中心 - Netlify 版</title>
+  <style>
+    /* 這裡延用之前的灰階莫蘭迪風格 CSS ... */
+    :root { --primary: #333; --bg: #f8f9fa; --card: #ffffff; }
+    body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; }
+    nav { background: var(--primary); padding: 15px; color: white; text-align: center; }
+    .nav-btn { background: none; border: 1px solid #666; color: white; padding: 8px 20px; cursor: pointer; margin: 0 5px; border-radius: 20px; }
+    .nav-btn.active { background: white; color: var(--primary); }
+    .container { max-width: 900px; margin: 20px auto; padding: 0 15px; }
+    .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+    input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+    /* 卡片與表格樣式省略，與之前相同 */
+  </style>
+</head>
+<body>
+
+<nav>
+  <button id="btn-search" class="nav-btn active">歌曲搜尋</button>
+  <button id="btn-summary" class="nav-btn">熱門排行</button>
+</nav>
+
+<div class="container">
+  <div id="search-section">
+    <div class="search-box">
+      <input type="text" id="keyword" placeholder="輸入歌曲或原唱...">
+      <button onclick="handleSearch()" style="padding:10px 20px; cursor:pointer;">搜尋</button>
+    </div>
+    <div id="search-output"></div>
+  </div>
+
+  <div id="summary-section" style="display:none;">
+    <div id="summary-output" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:15px;"></div>
+  </div>
+</div>
+
+<script>
+  // ⚠️ 請在此填入你的 Google Apps Script 部署網址
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyukn-5Vy0IgELZj5HHzxVTWrhSdSuxOc18o-y1KgXlZifXWmNm03MvtBkx_QVi9ALiGg/exec";
+
+  async function fetchData(action, query = "") {
+    const loader = document.createElement('div');
+    loader.innerText = "讀取中...";
+    document.body.appendChild(loader);
+
+    try {
+      const url = `${GAS_URL}?action=${action}&q=${encodeURIComponent(query)}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      document.body.removeChild(loader);
+      return data;
+    } catch (e) {
+      console.error("讀取失敗", e);
+      alert("資料讀取失敗，請確認 GAS 部署是否正確。");
+    }
+  }
+
+  async function handleSearch() {
+    const q = document.getElementById('keyword').value;
+    if (!q) return;
+    const data = await fetchData('search', q);
+    // 渲染搜尋結果表格邏輯...
+    document.getElementById('search-output').innerHTML = data.length ? "渲染結果..." : "查無資料";
+  }
+
+  // 切換標籤邏輯...
+</script>
+</body>
+</html>
