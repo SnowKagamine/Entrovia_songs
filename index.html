@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>歌回小助手 | 觀眾專屬歌單</title>
+  <title>安特羅迦－歌單助手</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -108,7 +108,6 @@
       background: #000;
     }
 
-    /* ✨ 新增：所有歌曲頁面的控制列（排序與搜尋） */
     .filter-controls {
       display: flex;
       flex-wrap: wrap;
@@ -282,7 +281,6 @@
 <nav>
   <div class="nav-container">
     <button id="nav-search" class="nav-btn active" onclick="switchView('search-view')">🔍 歌曲搜尋</button>
-    <!-- ✨ 修改名稱為「所有歌曲」 -->
     <button id="nav-summary" class="nav-btn" onclick="summaryBtnClick()">🎵 所有歌曲</button>
   </div>
 </nav>
@@ -290,13 +288,13 @@
 <div class="main-content">
   <section id="search-view" class="view-section active">
     <div class="search-bar">
-      <input type="text" id="keyword" placeholder="輸入歌曲名稱或原唱關鍵字..." onkeypress="if(event.key==='Enter') handleSearch()">
+      <!-- ✨ 提示字調整：讓觀眾知道現在可以連直播標題一起搜了 -->
+      <input type="text" id="keyword" placeholder="輸入歌曲、原唱，或直播標題關鍵字..." onkeypress="if(event.key==='Enter') handleSearch()">
       <button class="btn-search" onclick="handleSearch()">搜尋</button>
     </div>
     <div id="search-results"></div>
   </section>
 
-  <!-- ✨ 所有歌曲總覽分頁 -->
   <section id="summary-view" class="view-section">
     <div class="filter-controls">
       <div class="control-group">
@@ -308,6 +306,7 @@
         </select>
       </div>
       <div class="control-group">
+        <!-- ✨ 這裡的快速篩選也同步支援直播標題欄位過濾 -->
         <input type="text" id="summary-search" placeholder="在清單中快速篩選..." oninput="processAndRenderSummary()">
       </div>
     </div>
@@ -360,6 +359,7 @@
     }
   }
 
+  // ✨ 升級優化：多條件欄位模糊搜尋
   async function handleSearch() {
     const q = document.getElementById('keyword').value.trim().toLowerCase();
     if (!q) return;
@@ -369,9 +369,11 @@
       allSongsCache = results || [];
     }
 
+    // ✨ 核心邏輯：除了判斷歌名(r.song)、原唱(r.artist)之外，多加入直播標題(r.title)的模糊比對
     const filtered = allSongsCache.filter(r => 
       (r.song && r.song.toLowerCase().includes(q)) || 
-      (r.artist && r.artist.toLowerCase().includes(q))
+      (r.artist && r.artist.toLowerCase().includes(q)) ||
+      (r.title && r.title.toLowerCase().includes(q))
     );
 
     renderSearch(filtered);
@@ -407,20 +409,20 @@
     processAndRenderSummary();
   }
 
-  // ✨ 新增：處理排序與即時篩選的關鍵邏輯
+  // ✨ 升級優化：在「所有歌曲」分頁的快速過濾框，也同步支援篩選「最近一次演唱的直播標題」
   function processAndRenderSummary() {
     if (!summaryCache) return;
 
     const sortType = document.getElementById('sort-select').value;
     const filterText = document.getElementById('summary-search').value.trim().toLowerCase();
 
-    // 1. 關鍵字過濾
+    // 加強過濾：增加對 s.lastTitle (最近一場直播標題) 的判斷
     let processedData = summaryCache.filter(s => 
       (s.name && s.name.toLowerCase().includes(filterText)) ||
-      (s.artist && s.artist.toLowerCase().includes(filterText))
+      (s.artist && s.artist.toLowerCase().includes(filterText)) ||
+      (s.lastTitle && s.lastTitle.toLowerCase().includes(filterText))
     );
 
-    // 2. 執行排序
     if (sortType === 'count-desc') {
       processedData.sort((a, b) => (b.count || 0) - (a.count || 0));
     } else if (sortType === 'count-asc') {
