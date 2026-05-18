@@ -8,19 +8,27 @@
   <style>
     :root {
       --primary: #333;
-      --bg: #f8f9fa;
-      --card: #ffffff;
-      --border: #e0e0e0;
+      --card: rgba(255, 255, 255, 0.85); 
+      --border: rgba(224, 224, 224, 0.6);
       --text-main: #222;
       --text-sub: #666;
     }
 
     body {
       font-family: 'Noto Sans TC', sans-serif;
-      background-color: var(--bg);
       margin: 0;
       color: var(--text-main);
       line-height: 1.6;
+      
+      /* ✨ 背景圖片設定（已改為本機/Git 相對路徑 bg.jpg） */
+      background-image: 
+        linear-gradient(rgba(244, 246, 248, 0.85), rgba(244, 246, 248, 0.85)),
+        url("bg.jpg"); 
+      
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
     }
 
     nav {
@@ -57,6 +65,7 @@
       max-width: 1000px;
       margin: 30px auto;
       padding: 0 20px;
+      min-height: calc(100vh - 160px); /* 確保內容不足時，頁尾也能黏在底部 */
     }
 
     .view-section {
@@ -75,6 +84,7 @@
       padding: 10px;
       border-radius: 50px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      backdrop-filter: blur(5px);
     }
     .search-bar input {
       flex: 1;
@@ -83,6 +93,7 @@
       border-radius: 30px;
       font-size: 16px;
       outline: none;
+      background: transparent;
     }
     .btn-search {
       background: var(--primary);
@@ -105,9 +116,10 @@
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      backdrop-filter: blur(5px);
     }
-    .results-table th { background: #f1f1f1; padding: 15px; text-align: left; font-size: 14px; color: var(--text-sub); }
-    .results-table td { padding: 18px 15px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    .results-table th { background: rgba(241, 241, 241, 0.8); padding: 15px; text-align: left; font-size: 14px; color: var(--text-sub); }
+    .results-table td { padding: 18px 15px; border-bottom: 1px solid rgba(240, 240, 240, 0.8); font-size: 14px; }
     
     .summary-grid {
       display: grid;
@@ -119,34 +131,49 @@
       border: 1px solid var(--border);
       border-radius: 15px;
       padding: 20px;
-      position: relative;
       transition: 0.3s;
       display: flex;
       flex-direction: column;
+      backdrop-filter: blur(5px);
     }
     .song-card:hover {
       transform: translateY(-5px);
       box-shadow: 0 10px 25px rgba(0,0,0,0.08);
       border-color: #bbb;
     }
+
+    .badge-wrapper {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 10px;
+    }
     .badge {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: #f0f0f0;
+      background: rgba(0, 0, 0, 0.06);
       color: #444;
-      padding: 4px 12px;
+      padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
       font-weight: bold;
+      white-space: nowrap;
     }
-    .song-card h3 { margin: 0 0 5px 0; font-size: 18px; color: #111; padding-right: 60px; }
+    
+    .song-card h3 { 
+      margin: 0 0 5px 0; 
+      font-size: 19px; 
+      color: #111; 
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .song-card p { margin: 0; font-size: 14px; color: var(--text-sub); }
     
     .card-footer {
-      margin-top: 20px;
+      margin-top: auto; 
       padding-top: 15px;
       border-top: 1px dashed #eee;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
     .play-btn {
       display: block;
@@ -165,6 +192,43 @@
     .play-btn:hover {
       background: var(--primary);
       color: white;
+    }
+    .search-link-btn {
+      width: 100%; 
+      padding: 10px; 
+      border-radius: 10px; 
+      border: 1px solid #ddd; 
+      background: white; 
+      cursor: pointer; 
+      font-size: 13px; 
+      font-weight: bold; 
+      color: #666; 
+      transition: 0.2s;
+    }
+    .search-link-btn:hover {
+      background: #f9f9f9;
+      color: #333;
+    }
+
+    /* ✨ 網頁底部（資訊註記區）樣式 */
+    footer {
+      text-align: center;
+      padding: 25px 10px;
+      font-size: 12px;
+      color: #777;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(5px);
+      border-top: 1px solid rgba(224, 224, 224, 0.4);
+    }
+    footer a {
+      color: #555;
+      text-decoration: none;
+      border-bottom: 1px dotted #888;
+      transition: 0.2s;
+    }
+    footer a:hover {
+      color: #000;
+      border-bottom-style: solid;
     }
 
     #loader { display: none; text-align: center; padding: 50px; font-weight: bold; color: #999; }
@@ -202,8 +266,18 @@
   <div id="loader">處理中，請稍候...</div>
 </div>
 
+<!-- ✨ 安排在此：網頁頁尾資訊標註 -->
+<footer>
+  <div style="margin-bottom: 4px;">
+    背景：<a href="https://x.com/CSS74134570" target="_blank">奶油醬油</a> 繪製 (X: @CSS74134570)
+  </div>
+  <div>
+    Ender安德 委託製作
+  </div>
+</footer>
+
 <script>
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbxHUhsqilgfL67LGmsQrvrp6U_emtvaypJ-Ah376zfviHjoiFc3FS6qHXZSrFddMiaIsQ/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyukn-5Vy0IgELZj5HHzxVTWrhSdSuxOc18o-y1KgXlZifXWmNm03MvtBkx_QVi9ALiGg/exec";
 
   async function switchView(viewId) {
     document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
@@ -267,21 +341,7 @@
     const data = await apiCall('summary');
     renderSummary(data);
   }
-// 新增：跳轉至搜尋功能
-  function jumpToSearch(songName) {
-    // 1. 切換到搜尋分頁
-    switchView('search-view');
-    
-    // 2. 找到搜尋框並填入歌名
-    const searchInput = document.getElementById('keyword');
-    searchInput.value = songName;
-    
-    // 3. 自動觸發搜尋按鈕
-    handleSearch();
-    
-    // 4. (選用) 滾動到頁面頂部
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+
   function renderSummary(data) {
     const container = document.getElementById('summary-results');
     if (!data || data.length === 0) {
@@ -291,22 +351,28 @@
 
     container.innerHTML = data.map(s => `
       <div class="song-card">
-        <div class="badge">演唱 ${s.count} 次</div>
-        <h3>${s.name}</h3>
+        <div class="badge-wrapper">
+          <div class="badge">演唱 ${s.count} 次</div>
+        </div>
+        <h3 title="${s.name}">${s.name}</h3>
         <p>${s.artist}</p>
-        <div class="card-footer" style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="card-footer">
           <div style="font-size:11px; color:#aaa; margin-bottom:2px;">最近：${s.lastTitle}</div>
-          
-          <!-- 原有的播放最近版本按鈕 -->
           <a href="${s.lastLink}" target="_blank" class="play-btn">▶ 播放最近版本</a>
-          
-          <!-- 新增的跳轉搜尋按鈕 -->
-          <button onclick="jumpToSearch('${s.name}')" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; background:white; cursor:pointer; font-size:13px; font-weight:bold; color:#666; transition:0.2s;">
+          <button onclick="jumpToSearch('${s.name.replace(/'/g, "\\'")}')" class="search-link-btn">
             🔍 查看所有演唱紀錄
           </button>
         </div>
       </div>
     `).join('');
+  }
+
+  function jumpToSearch(songName) {
+    switchView('search-view');
+    const searchInput = document.getElementById('keyword');
+    searchInput.value = songName;
+    handleSearch();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function showLoader(show) {
