@@ -20,7 +20,6 @@
       color: var(--text-main);
       line-height: 1.6;
       
-      /* ✨ 背景圖片設定（已改為本機/Git 相對路徑 bg.jpg） */
       background-image: 
         linear-gradient(rgba(244, 246, 248, 0.85), rgba(244, 246, 248, 0.85)),
         url("bg.jpg"); 
@@ -65,7 +64,7 @@
       max-width: 1000px;
       margin: 30px auto;
       padding: 0 20px;
-      min-height: calc(100vh - 160px); /* 確保內容不足時，頁尾也能黏在底部 */
+      min-height: calc(100vh - 160px);
     }
 
     .view-section {
@@ -210,7 +209,6 @@
       color: #333;
     }
 
-    /* ✨ 網頁底部（資訊註記區）樣式 */
     footer {
       text-align: center;
       padding: 25px 10px;
@@ -246,7 +244,7 @@
 <nav>
   <div class="nav-container">
     <button id="nav-search" class="nav-btn active" onclick="switchView('search-view')">🔍 歌曲搜尋</button>
-    <button id="nav-summary" class="nav-btn" onclick="switchView('summary-view')">🏆 熱門排行</button>
+    <button id="nav-summary" class="nav-btn" onclick="summaryBtnClick()">🏆 熱門排行</button>
   </div>
 </nav>
 
@@ -266,7 +264,6 @@
   <div id="loader">處理中，請稍候...</div>
 </div>
 
-<!-- ✨ 安排在此：網頁頁尾資訊標註 -->
 <footer>
   <div style="margin-bottom: 4px;">
     背景：<a href="https://x.com/CSS74134570" target="_blank">奶油醬油</a> 繪製 (X: @CSS74134570)
@@ -279,16 +276,22 @@
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyukn-5Vy0IgELZj5HHzxVTWrhSdSuxOc18o-y1KgXlZifXWmNm03MvtBkx_QVi9ALiGg/exec";
 
+  // ✨ 新增：前端快取機制，大幅提升二次搜尋與跳轉的速度
+  let allSongsCache = null; 
+  let summaryCache = null;  
+
   async function switchView(viewId) {
     document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     
     document.getElementById(viewId).classList.add('active');
     if(viewId === 'search-view') document.getElementById('nav-search').classList.add('active');
-    if(viewId === 'summary-view') {
-      document.getElementById('nav-summary').classList.add('active');
-      loadSummary();
-    }
+    if(viewId === 'summary-view') document.getElementById('nav-summary').classList.add('active');
+  }
+
+  async function summaryBtnClick() {
+    switchView('summary-view');
+    await loadSummary();
   }
 
   async function apiCall(action, params = "") {
@@ -305,11 +308,24 @@
     }
   }
 
+  // ✨ 加速核心：優化後的搜尋函式（优先使用快取，無快取時一次性抓取全部）
   async function handleSearch() {
-    const q = document.getElementById('keyword').value.trim();
+    const q = document.getElementById('keyword').value.trim().toLowerCase();
     if (!q) return;
-    const results = await apiCall('search', `&q=${encodeURIComponent(q)}`);
-    renderSearch(results);
+
+    // 1. 如果是第一次搜尋，直接發送空字串給 GAS 抓取全部資料並存入快取
+    if (!allSongsCache) {
+      const results = await apiCall('search', '&q=');
+      allSongsCache = results || [];
+    }
+
+    // 2. 之後不論搜尋幾次，直接在瀏覽器記憶體內做 filter，體感速度 0.1 秒
+    const filtered = allSongsCache.filter(r => 
+      (r.song && r.song.toLowerCase().includes(q)) || 
+      (r.artist && r.artist.toLowerCase().includes(q))
+    );
+
+    renderSearch(filtered);
   }
 
   function renderSearch(results) {
@@ -335,10 +351,11 @@
     container.innerHTML = html;
   }
 
+  // ✨ 新增：熱門排行也加上快取，重複切換分頁時完全免等
   async function loadSummary() {
-    const container = document.getElementById('summary-results');
-    if (container.children.length > 0) return;
+    if (summaryCache) return; 
     const data = await apiCall('summary');
+    summaryCache = data;
     renderSummary(data);
   }
 
@@ -367,6 +384,7 @@
     `).join('');
   }
 
+  // ✨ 點擊排行卡片跳轉時，會直接調用本地快取搜尋，速度極快
   function jumpToSearch(songName) {
     switchView('search-view');
     const searchInput = document.getElementById('keyword');
