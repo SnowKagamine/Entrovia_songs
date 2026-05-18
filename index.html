@@ -108,6 +108,42 @@
       background: #000;
     }
 
+    /* ✨ 新增：所有歌曲頁面的控制列（排序與搜尋） */
+    .filter-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 25px;
+      background: var(--card);
+      padding: 15px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      backdrop-filter: blur(5px);
+      align-items: center;
+      justify-content: space-between;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .control-group label {
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--text-sub);
+    }
+    .filter-controls select, .filter-controls input {
+      padding: 8px 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      background: white;
+    }
+    .filter-controls input {
+      width: 200px;
+    }
+
     .results-table {
       width: 100%;
       border-collapse: collapse;
@@ -235,6 +271,8 @@
 
     @media (max-width: 600px) {
       .search-bar { flex-direction: column; border-radius: 15px; }
+      .filter-controls { flex-direction: column; align-items: stretch; }
+      .filter-controls input { width: auto; }
       .results-table th:nth-child(1), .results-table td:nth-child(1) { display: none; }
     }
   </style>
@@ -244,7 +282,8 @@
 <nav>
   <div class="nav-container">
     <button id="nav-search" class="nav-btn active" onclick="switchView('search-view')">🔍 歌曲搜尋</button>
-    <button id="nav-summary" class="nav-btn" onclick="summaryBtnClick()">🏆 熱門排行</button>
+    <!-- ✨ 修改名稱為「所有歌曲」 -->
+    <button id="nav-summary" class="nav-btn" onclick="summaryBtnClick()">🎵 所有歌曲</button>
   </div>
 </nav>
 
@@ -257,7 +296,21 @@
     <div id="search-results"></div>
   </section>
 
+  <!-- ✨ 所有歌曲總覽分頁 -->
   <section id="summary-view" class="view-section">
+    <div class="filter-controls">
+      <div class="control-group">
+        <label for="sort-select">排序依據：</label>
+        <select id="sort-select" onchange="processAndRenderSummary()">
+          <option value="count-desc">次數：多 ➔ 少</option>
+          <option value="count-asc">次數：少 ➔ 多</option>
+          <option value="name-asc">歌名：A ➔ Z / 筆畫少 ➔ 多</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <input type="text" id="summary-search" placeholder="在清單中快速篩選..." oninput="processAndRenderSummary()">
+      </div>
+    </div>
     <div class="summary-grid" id="summary-results"></div>
   </section>
 
@@ -276,7 +329,6 @@
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyukn-5Vy0IgELZj5HHzxVTWrhSdSuxOc18o-y1KgXlZifXWmNm03MvtBkx_QVi9ALiGg/exec";
 
-  // ✨ 新增：前端快取機制，大幅提升二次搜尋與跳轉的速度
   let allSongsCache = null; 
   let summaryCache = null;  
 
@@ -308,18 +360,15 @@
     }
   }
 
-  // ✨ 加速核心：優化後的搜尋函式（优先使用快取，無快取時一次性抓取全部）
   async function handleSearch() {
     const q = document.getElementById('keyword').value.trim().toLowerCase();
     if (!q) return;
 
-    // 1. 如果是第一次搜尋，直接發送空字串給 GAS 抓取全部資料並存入快取
     if (!allSongsCache) {
       const results = await apiCall('search', '&q=');
       allSongsCache = results || [];
     }
 
-    // 2. 之後不論搜尋幾次，直接在瀏覽器記憶體內做 filter，體感速度 0.1 秒
     const filtered = allSongsCache.filter(r => 
       (r.song && r.song.toLowerCase().includes(q)) || 
       (r.artist && r.artist.toLowerCase().includes(q))
@@ -351,18 +400,42 @@
     container.innerHTML = html;
   }
 
-  // ✨ 新增：熱門排行也加上快取，重複切換分頁時完全免等
   async function loadSummary() {
     if (summaryCache) return; 
     const data = await apiCall('summary');
-    summaryCache = data;
-    renderSummary(data);
+    summaryCache = data || [];
+    processAndRenderSummary();
+  }
+
+  // ✨ 新增：處理排序與即時篩選的關鍵邏輯
+  function processAndRenderSummary() {
+    if (!summaryCache) return;
+
+    const sortType = document.getElementById('sort-select').value;
+    const filterText = document.getElementById('summary-search').value.trim().toLowerCase();
+
+    // 1. 關鍵字過濾
+    let processedData = summaryCache.filter(s => 
+      (s.name && s.name.toLowerCase().includes(filterText)) ||
+      (s.artist && s.artist.toLowerCase().includes(filterText))
+    );
+
+    // 2. 執行排序
+    if (sortType === 'count-desc') {
+      processedData.sort((a, b) => (b.count || 0) - (a.count || 0));
+    } else if (sortType === 'count-asc') {
+      processedData.sort((a, b) => (a.count || 0) - (b.count || 0));
+    } else if (sortType === 'name-asc') {
+      processedData.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hant'));
+    }
+
+    renderSummary(processedData);
   }
 
   function renderSummary(data) {
     const container = document.getElementById('summary-results');
     if (!data || data.length === 0) {
-      container.innerHTML = '<div class="empty-msg">暫無排行資料。</div>';
+      container.innerHTML = '<div class="empty-msg">沒有符合篩選條件的歌曲。</div>';
       return;
     }
 
@@ -384,7 +457,6 @@
     `).join('');
   }
 
-  // ✨ 點擊排行卡片跳轉時，會直接調用本地快取搜尋，速度極快
   function jumpToSearch(songName) {
     switchView('search-view');
     const searchInput = document.getElementById('keyword');
