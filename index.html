@@ -357,41 +357,59 @@
     .volume-container { display: flex; align-items: center; gap: 8px; }
     .volume-slider { -webkit-appearance: none; width: 80px; height: 4px; background: #ddd; border-radius: 2px; outline: none; cursor: pointer; }
     .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--primary); border-radius: 50%; }
+
+    /* YT widget 視窗，初始為標準大小，縮放按鈕固定在容器外可見處 */
     #yt-widget-container {
       position: fixed;
       bottom: 100px;
       left: 20px;
-      width: 200px;
-      height: 120px;
+      width: 240px;
+      height: 140px;
       background: #000;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
       z-index: 1000;
-      transition: 0.3s ease;
+      transition: width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
     }
     #yt-widget-container.minimized {
-      width: 40px;
-      height: 40px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
-      overflow: hidden;
-      opacity: 0.3;
+      opacity: 0.5;
     }
     #yt-widget-container.minimized:hover { opacity: 1; }
-    #yt-player-mask { width: 100%; height: 100%; }
+    #yt-widget-container.minimized #yt-player-mask {
+      pointer-events: none;
+      opacity: 0;
+    }
+    #yt-player-mask {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      overflow: hidden;
+      transition: opacity 0.2s ease;
+    }
     .yt-toggle-btn {
       position: absolute;
-      top: 2px;
-      right: 2px;
-      background: rgba(0,0,0,0.6);
+      top: -10px;
+      right: -10px;
+      background: var(--primary);
       color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 10px;
+      border: 2px solid white;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      font-size: 13px;
       cursor: pointer;
       z-index: 1001;
-      padding: 2px 5px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
+    .yt-toggle-btn:hover { background: #000; }
+
     .dropdown-menu {
       position: absolute;
       background: white;
@@ -412,6 +430,117 @@
       font-weight: bold;
     }
     .dropdown-menu li:hover { background: #f5f5f5; }
+
+    /* 播放清單彈窗 */
+    .queue-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+    .queue-modal-overlay.show { display: flex; }
+    .queue-modal {
+      background: white;
+      width: 90%;
+      max-width: 600px;
+      max-height: 75vh;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .queue-modal-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .queue-modal-header h3 { margin: 0; font-size: 17px; }
+    .queue-modal-header .close-x {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #888;
+      line-height: 1;
+    }
+    .queue-modal-body {
+      overflow-y: auto;
+      padding: 8px 0;
+      flex: 1;
+    }
+    .queue-modal-item {
+      padding: 12px 22px;
+      border-bottom: 1px solid #f5f5f5;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: 0.15s;
+    }
+    .queue-modal-item:hover { background: #fafafa; }
+    .queue-modal-item.current {
+      background: rgba(0,0,0,0.04);
+      box-shadow: inset 3px 0 0 var(--primary);
+    }
+    .queue-modal-item .idx {
+      width: 24px;
+      color: #999;
+      font-size: 13px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .queue-modal-item .info {
+      flex: 1;
+      min-width: 0;
+    }
+    .queue-modal-item .info .name {
+      font-weight: bold;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .queue-modal-item .info .artist {
+      font-size: 12px;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .queue-modal-item .remove {
+      background: none;
+      border: none;
+      font-size: 14px;
+      color: #aaa;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    .queue-modal-item .remove:hover { color: #c62828; }
+    .queue-modal-footer {
+      padding: 12px 22px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .queue-modal-footer button {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    .queue-modal-footer button:hover { background: #f5f5f5; }
+
     footer {
       text-align: center;
       padding: 25px 10px 40px 10px;
@@ -434,6 +563,8 @@
       .player-info, .player-right { display: none; }
       .playlist-layout { grid-template-columns: 1fr; }
       .results-table th:nth-child(1), .results-table td:nth-child(1) { display: none; }
+      #yt-widget-container { width: 160px; height: 90px; bottom: 90px; }
+      #yt-widget-container.minimized { width: 44px; height: 44px; }
     }
   </style>
 </head>
@@ -509,8 +640,8 @@
   </div>
 </footer>
 
-<div id="yt-widget-container" class="minimized">
-  <button class="yt-toggle-btn" onclick="togglePlayerSize()">📺 縮放</button>
+<div id="yt-widget-container">
+  <button class="yt-toggle-btn" onclick="togglePlayerSize()" title="縮放視窗">⇲</button>
   <div id="yt-player-mask"></div>
 </div>
 
@@ -540,7 +671,22 @@
       <button class="player-btn-icon" style="font-size:15px; width:28px; height:28px;" onclick="toggleMute()" id="pb-mute">🔊</button>
       <input type="range" class="volume-slider" min="0" max="100" value="100" id="pb-volume" oninput="handleVolumeChange(event)">
     </div>
-    <button class="player-btn-icon" title="顯示當前隊列" onclick="alert('接下來播放共 ' + playQueue.length + ' 首歌曲。')">📋</button>
+    <button class="player-btn-icon" title="顯示當前清單" onclick="showQueueModal()">📋</button>
+  </div>
+</div>
+
+<!-- 播放清單彈窗 -->
+<div class="queue-modal-overlay" id="queue-modal-overlay" onclick="if(event.target===this) hideQueueModal()">
+  <div class="queue-modal">
+    <div class="queue-modal-header">
+      <h3 id="queue-modal-title">播放清單 (0 首)</h3>
+      <button class="close-x" onclick="hideQueueModal()">×</button>
+    </div>
+    <div class="queue-modal-body" id="queue-modal-body"></div>
+    <div class="queue-modal-footer">
+      <button onclick="clearQueue()">🗑 清空清單</button>
+      <button onclick="hideQueueModal()">關閉</button>
+    </div>
   </div>
 </div>
 
@@ -557,6 +703,8 @@
   let repeatMode = 0; 
   let currentTrackEndSeconds = 0;
   let ytPlayer = null;
+  let ytReady = false;
+  let pendingTrack = null; // YT API 還沒 ready 時暫存待播放的曲目
   let timeMonitorInterval = null;
   let lastActiveView = 'search-view';
   let lastVolume = 100;
@@ -592,19 +740,37 @@
         'controls': 1,
         'rel': 0,
         'showinfo': 0,
-        'modestbranding': 1
+        'modestbranding': 1,
+        'playsinline': 1
       },
       events: {
         'onReady': onPlayerReady,
-        'onStateChange': onPlayerStateChange
+        'onStateChange': onPlayerStateChange,
+        'onError': onPlayerError
       }
     });
   }
 
   function onPlayerReady(event) {
+    ytReady = true;
     const vol = document.getElementById('pb-volume').value;
     ytPlayer.setVolume(vol);
     startTimeMonitor();
+    // 若 API ready 前已有點擊播放，補播
+    if (pendingTrack) {
+      const idx = pendingTrack;
+      pendingTrack = null;
+      playTrackAtIndex(idx);
+    }
+  }
+
+  function onPlayerError(event) {
+    console.error("YT Player error:", event.data);
+    // 錯誤碼 100/101/150 等通常代表影片無法嵌入，自動跳下一首
+    if (event.data === 100 || event.data === 101 || event.data === 150) {
+      console.warn("影片無法嵌入播放，自動跳下一首");
+      setTimeout(playNext, 500);
+    }
   }
 
   function onPlayerStateChange(event) {
@@ -634,9 +800,10 @@
       let total = ytPlayer.getDuration();
       if (currentQueueIndex >= 0 && currentQueueIndex < playQueue.length) {
         const track = playQueue[currentQueueIndex];
-        start = track.start ? parseInt(track.start, 10) : 0;
-        if (track.end && parseInt(track.end, 10) > start) {
-          total = parseInt(track.end, 10) - start;
+        start = parseStartSec(track);
+        const endSec = parseEndSec(track);
+        if (endSec > start) {
+          total = endSec - start;
         } else {
           total = ytPlayer.getDuration() - start;
         }
@@ -649,7 +816,7 @@
         const pct = (relativeCurrent / displayTotal) * 100;
         document.getElementById('pb-progress-fill').style.width = pct + '%';
       }
-    }, 1000);
+    }, 500);
   }
 
   function handleTrackEnd() {
@@ -660,15 +827,57 @@
     }
   }
 
+  // 解析 start 秒數：優先使用 track.start，否則從 link 抓 t= 參數，否則從 startTime "HH:MM:SS" 解析
+  function parseStartSec(track) {
+    if (!track) return 0;
+    if (track.start !== null && track.start !== undefined && track.start !== "") {
+      const v = parseInt(track.start, 10);
+      if (!isNaN(v) && v >= 0) return v;
+    }
+    if (track.link) {
+      const m = track.link.match(/[?&]t=(\d+)s?/);
+      if (m) return parseInt(m[1], 10);
+    }
+    if (track.startTime) {
+      return timeStrToSec(track.startTime);
+    }
+    return 0;
+  }
+
+  function parseEndSec(track) {
+    if (!track) return 0;
+    if (track.end !== null && track.end !== undefined && track.end !== "") {
+      const v = parseInt(track.end, 10);
+      if (!isNaN(v) && v > 0) return v;
+    }
+    if (track.link) {
+      const m = track.link.match(/[?&]end=(\d+)/);
+      if (m) return parseInt(m[1], 10);
+    }
+    if (track.endTime) {
+      return timeStrToSec(track.endTime);
+    }
+    return 0;
+  }
+
+  function timeStrToSec(str) {
+    if (!str) return 0;
+    const parts = String(str).split(':').map(p => parseInt(p, 10) || 0);
+    if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+    if (parts.length === 2) return parts[0]*60 + parts[1];
+    return parts[0] || 0;
+  }
+
   function extractVideoId(url) {
     if (!url) return null;
     let videoId = "";
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    // 支援 youtu.be/、watch?v=、embed/、shorts/、v/
+    const regExp = /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/))([A-Za-z0-9_-]{11})/;
     const match = url.match(regExp);
-    if (match && match[2].length === 11) {
-      videoId = match[2];
+    if (match && match[1]) {
+      videoId = match[1];
     }
-    return videoId;
+    return videoId || null;
   }
 
   function switchView(viewId) {
@@ -747,7 +956,7 @@
         tagHtml = `<span style="background:#eceff1; color:#37474f; border:1px solid #b0bec5; padding:1px 6px; font-size:11px; font-weight:bold; border-radius:10px; margin-left:5px; display:inline-block; vertical-align:middle;">影片</span>`;
       }
       const encodedItem = encodeURIComponent(JSON.stringify(r));
-      const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex].link === r.link);
+      const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === r.link && playQueue[currentQueueIndex].song === r.song);
       const rowClass = isCurrent ? 'playing-row' : '';
       let displayTimeRange = r.startTime ? r.startTime : '00:00';
       if (r.endTime) displayTimeRange += ' - ' + r.endTime;
@@ -822,10 +1031,10 @@
         isVideo: s.isVideo
       };
       const encodedItem = encodeURIComponent(JSON.stringify(standardizedItem));
-      const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex].song === s.name);
+      const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].song === s.name);
       const cardClass = isCurrent ? 'song-card playing-card' : 'song-card';
       return `
-        <div class="song-card ${cardClass}">
+        <div class="${cardClass}">
           <div class="badge-wrapper">
             <div class="badge">演唱 ${s.count} 次</div>
             ${tagHtml}
@@ -838,7 +1047,7 @@
             <button onclick="playSingleTrackInstant('${encodedItem}')" class="play-btn">▶ 播放最近版本</button>
             <div class="card-actions-row">
               <button onclick="jumpToSearch('${s.name.replace(/'/g, "\\'")}')" class="card-sub-btn">🔍 紀錄</button>
-              <button onclick="addTrackToQueueDirect('${encodedItem}')" class="card-sub-btn">＋ 隊列</button>
+              <button onclick="addTrackToQueueDirect('${encodedItem}')" class="card-sub-btn">＋ 清單</button>
             </div>
           </div>
         </div>
@@ -876,19 +1085,28 @@
       return;
     }
     let html = `<table class="results-table">
-      <thead><tr><th></th><th>歌曲 / 原唱</th><th>時間範圍</th><th>來源標題</th><th>操作</th></tr></thead>
+      <thead><tr><th></th><th>歌曲 / 原唱</th><th>時間範圍</th><th>來源歌回標題</th><th>操作</th></tr></thead>
       <tbody>`;
     tracks.forEach((t, idx) => {
       const encodedItem = encodeURIComponent(JSON.stringify(t));
-      const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex].link === t.link);
+      const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === t.link && playQueue[currentQueueIndex].song === t.song);
       const rowClass = isCurrent ? 'playing-row' : '';
-      let displayTimeRange = t.startTime ? t.startTime : '00:00';
-      if (t.endTime) displayTimeRange += ' - ' + t.endTime;
+      // 顯示時間範圍：優先用 startTime/endTime 字串，沒有就從秒數推算
+      let displayTimeRange;
+      if (t.startTime) {
+        displayTimeRange = t.startTime;
+        if (t.endTime) displayTimeRange += ' - ' + t.endTime;
+      } else {
+        const s = parseStartSec(t);
+        const e = parseEndSec(t);
+        displayTimeRange = formatTime(s);
+        if (e > 0) displayTimeRange += ' - ' + formatTime(e);
+      }
       html += `<tr class="${rowClass}">
         <td style="text-align:center; width:40px;">
           <button class="btn-table-play" onclick="playPlaylistTrackAtIndex('${playlistName.replace(/'/g, "\\'")}', ${idx})">▶</button>
         </td>
-        <td><strong>${t.song}</strong><br><small style="color:#999">${t.artist}</small></td>
+        <td><strong>${t.song}</strong><br><small style="color:#999">${t.artist || ''}</small></td>
         <td style="color:#666; font-size:13px;">${displayTimeRange}</td>
         <td style="color:#888; font-size:12px; max-width:300px;">${t.title || '-'}</td>
         <td style="width:50px; text-align:center;">
@@ -948,20 +1166,33 @@
     if (index < 0 || index >= playQueue.length) return;
     currentQueueIndex = index;
     const track = playQueue[currentQueueIndex];
-    document.getElementById('pb-song').innerText = track.song;
+    document.getElementById('pb-song').innerText = track.song || '(未知歌曲)';
     document.getElementById('pb-artist').innerText = track.artist || '-';
     
     const videoId = extractVideoId(track.link);
-    if (!videoId) return;
+    if (!videoId) {
+      console.error("無法解析影片 ID：", track.link, track);
+      alert("無法解析此歌曲的影片連結，請檢查資料來源。\n\n連結: " + (track.link || '(空白)'));
+      return;
+    }
     
-    const startSec = track.start ? parseInt(track.start, 10) : 0;
-    currentTrackEndSeconds = track.end ? parseInt(track.end, 10) : 0;
+    // YT API 還沒 ready 時暫存
+    if (!ytReady || !ytPlayer || typeof ytPlayer.loadVideoById !== 'function') {
+      pendingTrack = index;
+      console.log("YT API 尚未就緒，暫存待播放：", index);
+      return;
+    }
     
-    if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+    const startSec = parseStartSec(track);
+    currentTrackEndSeconds = parseEndSec(track);
+    
+    try {
       ytPlayer.loadVideoById({
         videoId: videoId,
         startSeconds: startSec
       });
+    } catch (e) {
+      console.error("loadVideoById 錯誤:", e);
     }
     
     document.querySelectorAll('.results-table tr').forEach(tr => tr.classList.remove('playing-row'));
@@ -977,6 +1208,11 @@
         const plName = activeLi.id.replace('pl-menu-item-', '');
         selectPlaylist(plName);
       }
+    }
+
+    // 若彈窗開著，同步更新
+    if (document.getElementById('queue-modal-overlay').classList.contains('show')) {
+      renderQueueModal();
     }
   }
 
@@ -1046,10 +1282,11 @@
     if (!ytPlayer || typeof ytPlayer.getDuration !== 'function') return;
     if (currentQueueIndex < 0 || currentQueueIndex >= playQueue.length) return;
     const track = playQueue[currentQueueIndex];
-    const start = track.start ? parseInt(track.start, 10) : 0;
+    const start = parseStartSec(track);
+    const endSec = parseEndSec(track);
     let total = ytPlayer.getDuration() - start;
-    if (track.end && parseInt(track.end, 10) > start) {
-      total = parseInt(track.end, 10) - start;
+    if (endSec > start) {
+      total = endSec - start;
     }
     const rect = document.getElementById('pb-progress-wrap').getBoundingClientRect();
     const pct = (event.clientX - rect.left) / rect.width;
@@ -1087,7 +1324,16 @@
   }
 
   function togglePlayerSize() {
-    document.getElementById('yt-widget-container').classList.toggle('minimized');
+    const container = document.getElementById('yt-widget-container');
+    const btn = container.querySelector('.yt-toggle-btn');
+    container.classList.toggle('minimized');
+    if (container.classList.contains('minimized')) {
+      btn.innerText = "⇱";
+      btn.title = "展開視窗";
+    } else {
+      btn.innerText = "⇲";
+      btn.title = "縮小視窗";
+    }
   }
 
   function formatTime(seconds) {
@@ -1098,7 +1344,7 @@
   }
 
   function updateTabTitle(isPlaying) {
-    if (isPlaying && currentQueueIndex >= 0) {
+    if (isPlaying && currentQueueIndex >= 0 && playQueue[currentQueueIndex]) {
       document.title = "▶ " + playQueue[currentQueueIndex].song + " | 安特羅迦";
     } else {
       document.title = "安特羅迦 － 網頁音樂播放器";
@@ -1167,7 +1413,7 @@
   function addTrackToQueueDirect(encodedItem) {
     const track = JSON.parse(decodeURIComponent(encodedItem));
     playQueue.push(track);
-    alert(`已將「${track.song}」加入播放隊列。`);
+    alert(`已將「${track.song}」加入播放清單。`);
   }
 
   function jumpToSearch(songName) {
@@ -1183,7 +1429,7 @@
     downloadAnchor.setAttribute("download", "antrovia_playlists_backup.json");
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
-    downloadAnchor.removeChild(downloadAnchor);
+    document.body.removeChild(downloadAnchor);
   }
 
   function importPlaylists(event) {
@@ -1216,11 +1462,11 @@
     const item = JSON.parse(decodeURIComponent(encodedItem));
     
     const liQueue = document.createElement('li');
-    liQueue.innerText = "＋ 加入播放隊列";
+    liQueue.innerText = "＋ 加入播放清單";
     liQueue.onclick = () => {
       playQueue.push(item);
       hideContextMenu();
-      alert(`已將「${item.song}」加入隊列。`);
+      alert(`已將「${item.song}」加入清單。`);
     };
     menu.appendChild(liQueue);
     
@@ -1243,6 +1489,71 @@
 
   function hideContextMenu() {
     document.getElementById('context-dropdown').style.display = 'none';
+  }
+
+  // ===== 播放清單彈窗 =====
+  function showQueueModal() {
+    renderQueueModal();
+    document.getElementById('queue-modal-overlay').classList.add('show');
+  }
+
+  function hideQueueModal() {
+    document.getElementById('queue-modal-overlay').classList.remove('show');
+  }
+
+  function renderQueueModal() {
+    const body = document.getElementById('queue-modal-body');
+    const title = document.getElementById('queue-modal-title');
+    title.innerText = `播放清單 (${playQueue.length} 首)`;
+    if (playQueue.length === 0) {
+      body.innerHTML = '<div class="empty-msg">目前清單是空的。</div>';
+      return;
+    }
+    body.innerHTML = playQueue.map((t, idx) => {
+      const isCurrent = idx === currentQueueIndex;
+      return `
+        <div class="queue-modal-item ${isCurrent ? 'current' : ''}">
+          <div class="idx">${isCurrent ? '▶' : (idx + 1)}</div>
+          <div class="info" onclick="playFromQueueModal(${idx})">
+            <div class="name">${t.song || '(未知歌曲)'}</div>
+            <div class="artist">${t.artist || '-'}</div>
+          </div>
+          <button class="remove" onclick="removeFromQueue(${idx})" title="從清單移除">✕</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function playFromQueueModal(idx) {
+    if (idx < 0 || idx >= playQueue.length) return;
+    playTrackAtIndex(idx);
+  }
+
+  function removeFromQueue(idx) {
+    if (idx < 0 || idx >= playQueue.length) return;
+    playQueue.splice(idx, 1);
+    if (idx === currentQueueIndex) {
+      // 刪掉的剛好是目前播放的：保持索引但若超界則收尾
+      if (currentQueueIndex >= playQueue.length) {
+        currentQueueIndex = playQueue.length - 1;
+      }
+    } else if (idx < currentQueueIndex) {
+      currentQueueIndex--;
+    }
+    renderQueueModal();
+  }
+
+  function clearQueue() {
+    if (playQueue.length === 0) return;
+    if (!confirm("確定要清空整份播放清單嗎？")) return;
+    playQueue = [];
+    currentQueueIndex = -1;
+    if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+      try { ytPlayer.stopVideo(); } catch(e) {}
+    }
+    document.getElementById('pb-song').innerText = '尚未播放歌曲';
+    document.getElementById('pb-artist').innerText = '-';
+    renderQueueModal();
   }
 
   document.addEventListener('click', hideContextMenu);
