@@ -1245,12 +1245,24 @@
         if (repeatMode === 2) {
           currentQueueIndex = 0;
         } else {
+          // 最後一首結束 → 停止播放，重置狀態
           currentQueueIndex = playQueue.length - 1;
+          stopPlayback();
           return;
         }
       }
     }
     playTrackAtIndex(currentQueueIndex);
+  }
+
+  // 停止播放並重置 UI 狀態（用於整份清單播完）
+  function stopPlayback() {
+    currentTrackEndSeconds = 0;
+    if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+      try { ytPlayer.pauseVideo(); } catch(e) {}
+    }
+    document.getElementById('pb-play-toggle').innerText = "▶";
+    updateTabTitle(false);
   }
 
   function playPrev() {
