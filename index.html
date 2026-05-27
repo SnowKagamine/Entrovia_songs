@@ -426,7 +426,9 @@
     .player-btn-icon { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--player-icon); transition: 0.2s; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
     .player-btn-icon:hover { color: var(--text-main); background: var(--hover-strong); }
     .player-btn-icon.active { color: var(--text-main); background: var(--hover-bg); }
-    .player-btn-icon.btn-main-play { font-size: 24px; background: var(--primary); color: var(--primary-text-inv); width: 42px; height: 42px; }
+    .player-btn-icon.btn-main-play { font-size: 0; background: var(--primary); color: var(--primary-text-inv); width: 42px; height: 42px; padding: 0; }
+    .player-btn-icon.btn-main-play svg { width: 18px; height: 18px; fill: currentColor; display: block; }
+    .player-btn-icon.btn-main-play svg.icon-play { margin-left: 2px; } /* 三角形視覺置中微調 */
     .player-btn-icon.btn-main-play:hover { background: var(--accent); color: var(--primary-text-inv); scale: 1.05; }
     .progress-container { display: flex; align-items: center; width: 100%; max-width: 500px; gap: 10px; font-size: 11px; color: var(--text-sub); }
     .progress-bar-wrap { flex: 1; height: 4px; background: var(--btn-border); border-radius: 2px; position: relative; cursor: pointer; }
@@ -772,7 +774,7 @@
     <div class="player-controls">
       <button class="player-btn-icon" title="隨機播放" id="pb-shuffle" onclick="toggleShuffle()">🔀</button>
       <button class="player-btn-icon" title="上一首" onclick="playPrev()">⏮</button>
-      <button class="player-btn-icon btn-main-play" title="播放/暫停" id="pb-play-toggle" onclick="togglePlayPause()">▶</button>
+      <button class="player-btn-icon btn-main-play" title="播放/暫停" id="pb-play-toggle" onclick="togglePlayPause()"><svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
       <button class="player-btn-icon" title="下一首" onclick="playNext()">⏭</button>
       <button class="player-btn-icon" title="循環播放" id="pb-repeat" onclick="toggleRepeat()">🔁</button>
     </div>
@@ -815,6 +817,7 @@
   let allSongsCache = null; 
   let summaryCache = null;  
   let playlists = {};
+  let playCounts = {}; // 個人點播次數紀錄 { "song|artist": { count, lastPlayed, song, artist } }
   let playQueue = [];
   let currentQueueIndex = -1;
   let isShuffle = false;
@@ -891,13 +894,21 @@
     }
   }
 
+  // 切換播放鍵圖示
+  const SVG_PLAY = '<svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  const SVG_PAUSE = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+  function setPlayButton(isPlaying) {
+    const btn = document.getElementById('pb-play-toggle');
+    if (!btn) return;
+    btn.innerHTML = isPlaying ? SVG_PAUSE : SVG_PLAY;
+  }
+
   function onPlayerStateChange(event) {
-    const playToggleBtn = document.getElementById('pb-play-toggle');
     if (event.data === YT.PlayerState.PLAYING) {
-      playToggleBtn.innerText = "⏸";
+      setPlayButton(true);
       updateTabTitle(true);
     } else if (event.data === YT.PlayerState.PAUSED) {
-      playToggleBtn.innerText = "▶";
+      setPlayButton(false);
       updateTabTitle(false);
     } else if (event.data === YT.PlayerState.ENDED) {
       handleTrackEnd();
@@ -1177,7 +1188,7 @@
             <div style="font-size:11px; color:#aaa; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">最近：${s.lastTitle}</div>
             <button onclick="addTrackToQueueDirect('${encodedItem}')" class="play-btn">＋ 將最近版本加入清單</button>
             <div class="card-actions-row">
-              <button onclick="jumpToSearch('${s.name.replace(/'/g, "\\'")}')" class="card-sub-btn">🔍 紀錄</button>
+              <button onclick="jumpToSearch('${s.name.replace(/'/g, "\\'")}')" class="card-sub-btn">🔍 歷史演唱</button>
               <button onclick="replaceCurrentAndPlay('${encodedItem}')" class="card-sub-btn">▶ 切歌立即播放</button>
             </div>
           </div>
@@ -1421,7 +1432,7 @@
         ytPlayer.cueVideoById({ videoId: '' });
       } catch(e) {}
     }
-    document.getElementById('pb-play-toggle').innerText = "▶";
+    setPlayButton(false);
     document.getElementById('pb-current-time').innerText = "0:00";
     document.getElementById('pb-total-time').innerText = "0:00";
     document.getElementById('pb-progress-fill').style.width = "0%";
