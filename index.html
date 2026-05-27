@@ -1331,22 +1331,72 @@
 
   function playNext() {
     if (playQueue.length === 0) return;
+
+    // 整輪循環:不移除,只切下一首,放到清單尾循環
+    if (repeatMode === 2) {
+      if (isShuffle) {
+        currentQueueIndex = Math.floor(Math.random() * playQueue.length);
+      } else {
+        currentQueueIndex = (currentQueueIndex + 1) % playQueue.length;
+      }
+      playTrackAtIndex(currentQueueIndex);
+      return;
+    }
+
+    // 一般模式:移除目前那首
+    if (currentQueueIndex >= 0 && currentQueueIndex < playQueue.length) {
+      playQueue.splice(currentQueueIndex, 1);
+    }
+
+    if (playQueue.length === 0) {
+      // 清單空了 → 停止
+      currentQueueIndex = -1;
+      stopPlayback();
+      refreshUIForCurrentView();
+      return;
+    }
+
     if (isShuffle) {
       currentQueueIndex = Math.floor(Math.random() * playQueue.length);
     } else {
-      currentQueueIndex++;
+      // 移除後索引保持原位,自然會指到「下一首」
       if (currentQueueIndex >= playQueue.length) {
-        if (repeatMode === 2) {
-          currentQueueIndex = 0;
-        } else {
-          // 最後一首結束 → 停止播放，重置狀態
-          currentQueueIndex = playQueue.length - 1;
-          stopPlayback();
-          return;
-        }
+        currentQueueIndex = playQueue.length - 1;
       }
     }
     playTrackAtIndex(currentQueueIndex);
+  }
+
+  // 上一首:因為清單採「播完即移除」,沒有歷史可回退 → 重播當前歌曲
+  function playPrev() {
+    if (playQueue.length === 0 || currentQueueIndex < 0) return;
+    if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
+      const track = playQueue[currentQueueIndex];
+      const startSec = parseStartSec(track);
+      try {
+        ytPlayer.seekTo(startSec, true);
+        ytPlayer.playVideo();
+      } catch(e) {}
+    }
+  }
+
+  // 重新整理當前頁面顯示(刪除歌曲後同步刷新)
+  function refreshUIForCurrentView() {
+    if (document.getElementById('search-view').classList.contains('active')) {
+      const kw = document.getElementById('keyword').value.trim();
+      if (kw) handleSearch();
+    } else if (document.getElementById('summary-view').classList.contains('active')) {
+      if (summaryCache) processAndRenderSummary();
+    } else if (document.getElementById('playlist-view').classList.contains('active')) {
+      const activeLi = document.querySelector('.playlist-menu li.active');
+      if (activeLi) {
+        const plName = activeLi.id.replace('pl-menu-item-', '');
+        selectPlaylist(plName);
+      }
+    }
+    if (document.getElementById('queue-modal-overlay').classList.contains('show')) {
+      renderQueueModal();
+    }
   }
 
   // 停止播放並重置 UI 狀態（用於整份清單播完）
@@ -1377,20 +1427,6 @@
         btn.title = "展開視窗";
       }
     }
-  }
-
-  function playPrev() {
-    if (playQueue.length === 0) return;
-    currentQueueIndex--;
-    if (currentQueueIndex < 0) {
-      if (repeatMode === 2) {
-        currentQueueIndex = playQueue.length - 1;
-      } else {
-        currentQueueIndex = 0;
-        return;
-      }
-    }
-    playTrackAtIndex(currentQueueIndex);
   }
 
   function togglePlayPause() {
@@ -1557,8 +1593,15 @@
 
   function addTrackToQueueDirect(encodedItem) {
     const track = JSON.parse(decodeURIComponent(encodedItem));
+    const wasEmpty = playQueue.length === 0;
     playQueue.push(track);
-    alert(`已將「${track.song}」加入播放清單。`);
+    // 空清單時加入 → 自動播這首
+    if (wasEmpty) {
+      currentQueueIndex = 0;
+      playTrackAtIndex(0);
+    } else {
+      alert(`已將「${track.song}」加入播放清單。`);
+    }
   }
 
   // 切歌立即播放：取代目前播放位置那首，並立即播放，清單其他曲目保留
@@ -1691,16 +1734,24 @@
 
   function removeFromQueue(idx) {
     if (idx < 0 || idx >= playQueue.length) return;
+    const wasCurrent = (idx === currentQueueIndex);
     playQueue.splice(idx, 1);
-    if (idx === currentQueueIndex) {
-      // 刪掉的剛好是目前播放的：保持索引但若超界則收尾
-      if (currentQueueIndex >= playQueue.length) {
-        currentQueueIndex = playQueue.length - 1;
+    if (wasCurrent) {
+      // 刪掉的剛好是目前播放的 → 自動播下一首(索引保持原位即可)
+      if (playQueue.length === 0) {
+        currentQueueIndex = -1;
+        stopPlayback();
+      } else {
+        if (currentQueueIndex >= playQueue.length) {
+          currentQueueIndex = playQueue.length - 1;
+        }
+        playTrackAtIndex(currentQueueIndex);
       }
     } else if (idx < currentQueueIndex) {
       currentQueueIndex--;
     }
     renderQueueModal();
+    refreshUIForCurrentView();
   }
 
   function clearQueue() {
