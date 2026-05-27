@@ -431,8 +431,23 @@
     .player-btn-icon.btn-main-play svg.icon-play { margin-left: 3px; } /* 三角形視覺置中微調 */
     .player-btn-icon.btn-main-play:hover { background: var(--accent); color: var(--primary-text-inv); scale: 1.05; }
     .progress-container { display: flex; align-items: center; width: 100%; max-width: 500px; gap: 10px; font-size: 11px; color: var(--text-sub); }
-    .progress-bar-wrap { flex: 1; height: 4px; background: var(--btn-border); border-radius: 2px; position: relative; cursor: pointer; }
-    .progress-bar-fill { height: 100%; background: var(--primary); border-radius: 2px; width: 0%; }
+    .progress-bar-wrap { flex: 1; height: 4px; background: var(--btn-border); border-radius: 2px; position: relative; cursor: pointer; transition: height 0.15s ease; }
+    .progress-bar-wrap:hover { height: 6px; }
+    .progress-bar-fill { height: 100%; background: var(--primary); border-radius: 2px; width: 0%; position: relative; }
+    .progress-bar-fill::after {
+      content: "";
+      position: absolute;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      background: var(--primary);
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .progress-bar-wrap:hover .progress-bar-fill::after { opacity: 1; }
     .player-right { display: flex; align-items: center; justify-content: flex-end; gap: 15px; }
     .volume-container { display: flex; align-items: center; gap: 8px; }
     .volume-slider { -webkit-appearance: none; width: 80px; height: 4px; background: var(--btn-border); border-radius: 2px; outline: none; cursor: pointer; }
@@ -662,6 +677,43 @@
     }
     .theme-toggle:hover { background: rgba(255,255,255,0.18); transform: translateY(-50%) scale(1.08); }
     .nav-container { position: relative; }
+
+    /* Toast 通知 */
+    #toast-container {
+      position: fixed;
+      bottom: 110px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 3000;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--modal-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      padding: 12px 18px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      font-size: 14px;
+      max-width: 320px;
+      animation: toastIn 0.3s ease;
+      pointer-events: auto;
+    }
+    .toast.removing { animation: toastOut 0.3s ease forwards; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateX(30px); }
+    }
+    @media (max-width: 768px) {
+      #toast-container { bottom: 100px; right: 10px; left: 10px; }
+      .toast { max-width: none; }
+    }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @media (max-width: 768px) {
       .player-bar { grid-template-columns: 1fr auto; padding: 0 15px; height: 80px; }
@@ -749,6 +801,9 @@
 </div>
 
 <footer>
+  <div class="info-row" style="font-size:12px; color:var(--text-light);">
+    💡 快捷鍵:空白=播放暫停 · ←/→=快退/快進 5 秒 · Shift+←/→=上一首/下一首 · ↑/↓=音量 · M=靜音 · /=搜尋 · L=清單
+  </div>
   <div class="info-row">
     背景：<a href="https://x.com/CSS74134570" target="_blank">奶油醬油</a> 繪製 (X: @CSS74134570) ｜ Ender安德 委託
   </div>
@@ -780,7 +835,7 @@
     </div>
     <div class="progress-container">
       <span id="pb-current-time">0:00</span>
-      <div class="progress-bar-wrap" id="pb-progress-wrap" onclick="handleProgressSeek(event)">
+      <div class="progress-bar-wrap" id="pb-progress-wrap">
         <div class="progress-bar-fill" id="pb-progress-fill"></div>
       </div>
       <span id="pb-total-time">0:00</span>
@@ -811,6 +866,7 @@
 </div>
 
 <ul class="dropdown-menu" id="context-dropdown"></ul>
+<div id="toast-container"></div>
 
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyukn-5Vy0IgELZj5HHzxVTWrhSdSuxOc18o-y1KgXlZifXWmNm03MvtBkx_QVi9ALiGg/exec";
@@ -920,6 +976,7 @@
     timeMonitorInterval = setInterval(() => {
       if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
       if (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) return;
+      if (isDraggingProgress) return; // 拖曳中不要被覆蓋
       const current = ytPlayer.getCurrentTime();
       if (currentTrackEndSeconds > 0 && current >= currentTrackEndSeconds) {
         handleTrackEnd();
@@ -1479,20 +1536,83 @@
     }
   }
 
-  function handleProgressSeek(event) {
-    if (!ytPlayer || typeof ytPlayer.getDuration !== 'function') return;
-    if (currentQueueIndex < 0 || currentQueueIndex >= playQueue.length) return;
+  // 進度條:支援點擊與拖曳
+  let isDraggingProgress = false;
+  let progressDragStartFn = null;
+
+  function calcSeekFromPosition(clientX) {
+    if (currentQueueIndex < 0 || currentQueueIndex >= playQueue.length) return null;
     const track = playQueue[currentQueueIndex];
     const start = parseStartSec(track);
     const endSec = parseEndSec(track);
     let total = ytPlayer.getDuration() - start;
-    if (endSec > start) {
-      total = endSec - start;
-    }
-    const rect = document.getElementById('pb-progress-wrap').getBoundingClientRect();
-    const pct = (event.clientX - rect.left) / rect.width;
-    const seekTo = start + (pct * total);
-    ytPlayer.seekTo(seekTo, true);
+    if (endSec > start) total = endSec - start;
+    const wrap = document.getElementById('pb-progress-wrap');
+    if (!wrap) return null;
+    const rect = wrap.getBoundingClientRect();
+    let pct = (clientX - rect.left) / rect.width;
+    if (pct < 0) pct = 0;
+    if (pct > 1) pct = 1;
+    return { seekTo: start + (pct * total), pct, total, start };
+  }
+
+  function previewSeek(clientX) {
+    const info = calcSeekFromPosition(clientX);
+    if (!info) return;
+    // 拖曳時即時更新進度條視覺與時間顯示
+    document.getElementById('pb-progress-fill').style.width = (info.pct * 100) + '%';
+    document.getElementById('pb-current-time').innerText = formatTime(info.pct * info.total);
+  }
+
+  function commitSeek(clientX) {
+    const info = calcSeekFromPosition(clientX);
+    if (!info || !ytPlayer || typeof ytPlayer.seekTo !== 'function') return;
+    ytPlayer.seekTo(info.seekTo, true);
+  }
+
+  function bindProgressBar() {
+    const wrap = document.getElementById('pb-progress-wrap');
+    if (!wrap) return;
+    // 滑鼠
+    wrap.addEventListener('mousedown', (e) => {
+      if (!ytPlayer || typeof ytPlayer.getDuration !== 'function') return;
+      if (currentQueueIndex < 0) return;
+      isDraggingProgress = true;
+      previewSeek(e.clientX);
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!isDraggingProgress) return;
+      previewSeek(e.clientX);
+    });
+    document.addEventListener('mouseup', (e) => {
+      if (!isDraggingProgress) return;
+      isDraggingProgress = false;
+      commitSeek(e.clientX);
+    });
+    // 觸控
+    wrap.addEventListener('touchstart', (e) => {
+      if (!ytPlayer || typeof ytPlayer.getDuration !== 'function') return;
+      if (currentQueueIndex < 0) return;
+      isDraggingProgress = true;
+      previewSeek(e.touches[0].clientX);
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      if (!isDraggingProgress) return;
+      previewSeek(e.touches[0].clientX);
+    }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+      if (!isDraggingProgress) return;
+      isDraggingProgress = false;
+      if (e.changedTouches && e.changedTouches[0]) {
+        commitSeek(e.changedTouches[0].clientX);
+      }
+    });
+  }
+
+  // 移除舊版 handleProgressSeek (現在改用 bindProgressBar)
+  function handleProgressSeek(event) {
+    // 保留空函式以免舊 inline handler 報錯
   }
 
   function toggleMute() {
@@ -1620,11 +1740,11 @@
       currentQueueIndex = 0;
       playTrackAtIndex(0);
     } else {
-      alert(`已將「${track.song}」加入播放清單。`);
+      showToast(`已加入「${track.song}」`);
     }
   }
 
-  // 切歌立即播放：取代目前播放位置那首，並立即播放，清單其他曲目保留
+  // 切歌立即播放:取代目前播放位置那首,並立即播放,清單其他曲目保留
   function replaceCurrentAndPlay(encodedItem) {
     const track = JSON.parse(decodeURIComponent(encodedItem));
     if (playQueue.length === 0 || currentQueueIndex < 0) {
@@ -1666,7 +1786,7 @@
           playlists = { ...playlists, ...imported };
           savePlaylistsToStorage();
           renderPlaylistSidebar();
-          alert("歌單匯入成功！");
+          showToast("歌單匯入成功");
           const keys = Object.keys(playlists);
           if (keys.length > 0) selectPlaylist(keys[0]);
         }
@@ -1689,9 +1809,22 @@
     liQueue.onclick = () => {
       playQueue.push(item);
       hideContextMenu();
-      alert(`已將「${item.song}」加入清單。`);
+      showToast(`已加入「${item.song}」`);
     };
     menu.appendChild(liQueue);
+
+    const liShare = document.createElement('li');
+    liShare.innerText = "🔗 複製分享連結";
+    liShare.onclick = () => {
+      const url = buildShareUrl(item);
+      copyToClipboard(url).then(() => {
+        showToast('已複製分享連結');
+      }).catch(() => {
+        showToast('複製失敗,請手動複製: ' + url, 4000);
+      });
+      hideContextMenu();
+    };
+    menu.appendChild(liShare);
     
     Object.keys(playlists).forEach(plName => {
       const liPl = document.createElement('li');
@@ -1700,7 +1833,7 @@
         playlists[plName].push(item);
         savePlaylistsToStorage();
         hideContextMenu();
-        alert(`已將「${item.song}」收藏至 ${plName}`);
+        showToast(`已收藏「${item.song}」至 ${plName}`);
       };
       menu.appendChild(liPl);
     });
@@ -1708,6 +1841,34 @@
     menu.style.display = 'block';
     menu.style.left = event.clientX + 'px';
     menu.style.top = (window.scrollY + event.clientY) + 'px';
+  }
+
+  function buildShareUrl(item) {
+    const base = window.location.origin + window.location.pathname;
+    const params = new URLSearchParams();
+    params.set('song', item.song || '');
+    if (item.artist) params.set('artist', item.artist);
+    return base + '?' + params.toString();
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    // 退路
+    return new Promise((resolve, reject) => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        resolve();
+      } catch(e) { reject(e); }
+    });
   }
 
   function hideContextMenu() {
@@ -1818,12 +1979,145 @@
     }
   }
 
+  // ===== Toast 通知 =====
+  function showToast(msg, duration = 2200) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = msg;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('removing');
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
+  // ===== 鍵盤快捷鍵 =====
+  function bindKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // 在輸入框內不啟用快捷鍵
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+      // 有修飾鍵不處理(避免擋瀏覽器快捷鍵)
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlayPause();
+      } else if (e.code === 'ArrowRight' && e.shiftKey) {
+        e.preventDefault();
+        playNext();
+      } else if (e.code === 'ArrowLeft' && e.shiftKey) {
+        e.preventDefault();
+        playPrev();
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        seekRelative(5);
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        seekRelative(-5);
+      } else if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        adjustVolume(5);
+      } else if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        adjustVolume(-5);
+      } else if (e.code === 'KeyM') {
+        toggleMute();
+      } else if (e.code === 'Slash' || e.key === '/') {
+        // / = 跳到搜尋框
+        e.preventDefault();
+        const kw = document.getElementById('keyword');
+        if (kw) {
+          switchView('search-view');
+          kw.focus();
+        }
+      } else if (e.code === 'KeyL') {
+        // L = 顯示清單
+        showQueueModal();
+      }
+    });
+  }
+
+  function seekRelative(delta) {
+    if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+    if (currentQueueIndex < 0) return;
+    const current = ytPlayer.getCurrentTime();
+    const track = playQueue[currentQueueIndex];
+    const start = parseStartSec(track);
+    const endSec = parseEndSec(track);
+    let target = current + delta;
+    if (target < start) target = start;
+    if (endSec > 0 && target > endSec - 1) target = endSec - 1;
+    ytPlayer.seekTo(target, true);
+    showToast((delta > 0 ? '+' : '') + delta + ' 秒');
+  }
+
+  function adjustVolume(delta) {
+    if (!ytPlayer || typeof ytPlayer.setVolume !== 'function') return;
+    const slider = document.getElementById('pb-volume');
+    let v = parseInt(slider.value, 10) + delta;
+    if (v < 0) v = 0;
+    if (v > 100) v = 100;
+    slider.value = v;
+    ytPlayer.setVolume(v);
+    const muteBtn = document.getElementById('pb-mute');
+    muteBtn.innerText = v === 0 ? "🔇" : "🔊";
+    showToast('音量 ' + v + '%');
+  }
+
+  // ===== URL 參數定位 =====
+  // 支援 ?song=歌名 或 ?song=歌名&artist=原唱
+  // 也支援 ?q=任意關鍵字 自動跳搜尋頁並執行搜尋
+  async function handleUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    const song = params.get('song');
+    const artist = params.get('artist');
+    const q = params.get('q');
+
+    if (song) {
+      // 載入所有歌曲後找最新的版本來播放
+      if (!allSongsCache) {
+        const results = await apiCall('search', '&q=');
+        allSongsCache = results || [];
+      }
+      const songLower = song.toLowerCase();
+      const artistLower = artist ? artist.toLowerCase() : '';
+      // 篩出符合 song(+ artist)的所有版本,取第一筆(資料表是新到舊)
+      const matches = allSongsCache.filter(r => {
+        if (!r.song || r.song.toLowerCase() !== songLower) return false;
+        if (artistLower && (!r.artist || r.artist.toLowerCase() !== artistLower)) return false;
+        return true;
+      });
+      if (matches.length > 0) {
+        playQueue = [matches[0]];
+        currentQueueIndex = 0;
+        // YT API 可能還沒 ready,playTrackAtIndex 內有 pendingTrack 機制處理
+        playTrackAtIndex(0);
+        showToast(`從連結載入「${matches[0].song}」`);
+      } else {
+        showToast(`找不到「${song}」`, 3000);
+        switchView('search-view');
+        document.getElementById('keyword').value = song;
+        handleSearch();
+      }
+    } else if (q) {
+      switchView('search-view');
+      document.getElementById('keyword').value = q;
+      handleSearch();
+    }
+  }
+
   document.addEventListener('click', hideContextMenu);
 
   window.onload = function() {
     initTheme();
     initStorage();
     loadYoutubeAPI();
+    bindProgressBar();
+    bindKeyboardShortcuts();
+    handleUrlParams();
   };
 </script>
 
