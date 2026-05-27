@@ -13,7 +13,71 @@
       --border: rgba(224, 224, 224, 0.6);
       --text-main: #222;
       --text-sub: #666;
+      --text-light: #aaa;
       --accent: #555;
+      --bg-overlay: rgba(244, 246, 248, 0.85);
+      --bg-overlay-2: rgba(244, 246, 248, 0.85);
+      --table-head: rgba(241, 241, 241, 0.8);
+      --table-border: rgba(240, 240, 240, 0.8);
+      --row-current: rgba(0, 0, 0, 0.03);
+      --hover-bg: rgba(0,0,0,0.04);
+      --hover-strong: rgba(0,0,0,0.05);
+      --btn-bg: #f1f1f1;
+      --btn-bg-strong: #e0e0e0;
+      --btn-border: #ddd;
+      --input-bg: white;
+      --modal-bg: white;
+      --modal-item-hover: #fafafa;
+      --footer-bg: rgba(255, 255, 255, 0.7);
+      --player-bg: rgba(255, 255, 255, 0.92);
+      --shadow-color: rgba(0,0,0,0.05);
+      --shadow-strong: rgba(0,0,0,0.1);
+      --player-icon: #555;
+      --dashed-border: #eee;
+      --nav-inactive: #aaa;
+      --primary-text-inv: white;
+      --badge-bg: rgba(0, 0, 0, 0.06);
+      --badge-text: #444;
+      --dd-menu-bg: white;
+      --dd-menu-hover: #f5f5f5;
+      --nav-bg: #333;
+      --nav-text-active: white;
+    }
+    [data-theme="dark"] {
+      --primary: #e0e0e0;
+      --card: rgba(36, 38, 44, 0.85);
+      --border: rgba(80, 80, 90, 0.5);
+      --text-main: #e8e8e8;
+      --text-sub: #aaa;
+      --text-light: #777;
+      --accent: #bbb;
+      --bg-overlay: rgba(18, 20, 26, 0.88);
+      --bg-overlay-2: rgba(18, 20, 26, 0.88);
+      --table-head: rgba(50, 52, 58, 0.85);
+      --table-border: rgba(60, 62, 68, 0.6);
+      --row-current: rgba(255, 255, 255, 0.05);
+      --hover-bg: rgba(255,255,255,0.06);
+      --hover-strong: rgba(255,255,255,0.08);
+      --btn-bg: #3a3d44;
+      --btn-bg-strong: #4a4d54;
+      --btn-border: #4d5058;
+      --input-bg: #2c2f36;
+      --modal-bg: #25282e;
+      --modal-item-hover: #2f3239;
+      --footer-bg: rgba(25, 28, 34, 0.8);
+      --player-bg: rgba(22, 24, 30, 0.95);
+      --shadow-color: rgba(0,0,0,0.4);
+      --shadow-strong: rgba(0,0,0,0.6);
+      --player-icon: #ccc;
+      --dashed-border: #3a3d44;
+      --nav-inactive: #888;
+      --primary-text-inv: #1a1c20;
+      --badge-bg: rgba(255, 255, 255, 0.1);
+      --badge-text: #ddd;
+      --dd-menu-bg: #2c2f36;
+      --dd-menu-hover: #3a3d44;
+      --nav-bg: #1a1c20;
+      --nav-text-active: #fff;
     }
     body {
       font-family: 'Noto Sans TC', sans-serif;
@@ -21,16 +85,17 @@
       color: var(--text-main);
       line-height: 1.6;
       background-image: 
-        linear-gradient(rgba(244, 246, 248, 0.85), rgba(244, 246, 248, 0.85)),
+        linear-gradient(var(--bg-overlay), var(--bg-overlay-2)),
         url("bg.jpg"); 
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
       background-attachment: fixed;
       padding-bottom: 110px;
+      transition: color 0.3s ease;
     }
     nav {
-      background: var(--primary);
+      background: var(--nav-bg);
       padding: 5px 0;
       position: sticky;
       top: 0;
@@ -48,7 +113,7 @@
     .nav-btn {
       background: none;
       border: none;
-      color: #aaa;
+      color: var(--nav-inactive);
       padding: 15px 20px;
       cursor: pointer;
       font-size: 15px;
@@ -56,8 +121,8 @@
       transition: 0.3s;
     }
     .nav-btn.active {
-      color: white;
-      border-bottom: 3px solid white;
+      color: var(--nav-text-active);
+      border-bottom: 3px solid var(--nav-text-active);
     }
     .main-content {
       max-width: 1000px;
@@ -93,7 +158,7 @@
     }
     .btn-search {
       background: var(--primary);
-      color: white;
+      color: var(--primary-text-inv);
       border: none;
       padding: 12px 30px;
       border-radius: 30px;
@@ -102,7 +167,7 @@
       transition: 0.2s;
     }
     .btn-search:hover {
-      background: #000;
+      background: var(--accent);
     }
     .filter-controls {
       display: flex;
@@ -129,18 +194,20 @@
     }
     .filter-controls select, .filter-controls input {
       padding: 8px 15px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--btn-border);
       border-radius: 8px;
       font-size: 14px;
       outline: none;
-      background: white;
+      background: var(--input-bg);
+      color: var(--text-main);
     }
     .filter-controls input {
       width: 200px;
     }
     .btn-action-global {
-      background: #f1f1f1;
-      border: 1px solid #ddd;
+      background: var(--btn-bg);
+      color: var(--text-main);
+      border: 1px solid var(--btn-border);
       padding: 8px 15px;
       border-radius: 8px;
       cursor: pointer;
@@ -150,7 +217,7 @@
     }
     .btn-action-global:hover {
       background: var(--primary);
-      color: white;
+      color: var(--primary-text-inv);
     }
     .results-table {
       width: 100%;
@@ -161,10 +228,10 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.05);
       backdrop-filter: blur(5px);
     }
-    .results-table th { background: rgba(241, 241, 241, 0.8); padding: 15px; text-align: left; font-size: 14px; color: var(--text-sub); }
-    .results-table td { padding: 15px; border-bottom: 1px solid rgba(240, 240, 240, 0.8); font-size: 14px; }
+    .results-table th { background: var(--table-head); padding: 15px; text-align: left; font-size: 14px; color: var(--text-sub); }
+    .results-table td { padding: 15px; border-bottom: 1px solid var(--table-border); font-size: 14px; }
     .results-table tr.playing-row {
-      background: rgba(0, 0, 0, 0.03);
+      background: var(--row-current);
       box-shadow: inset 4px 0 0 var(--primary);
     }
     .btn-table-play {
@@ -173,12 +240,13 @@
       cursor: pointer;
       font-size: 18px;
       padding: 5px;
+      color: var(--text-main);
     }
     .btn-table-more {
       background: none;
       border: none;
       cursor: pointer;
-      color: #888;
+      color: var(--text-sub);
       font-size: 16px;
       padding: 5px;
     }
@@ -200,12 +268,12 @@
     }
     .song-card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-      border-color: #bbb;
+      box-shadow: 0 10px 25px var(--shadow-strong);
+      border-color: var(--accent);
     }
     .song-card.playing-card {
       border-color: var(--primary);
-      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 0 12px var(--shadow-strong);
     }
     .badge-wrapper {
       display: flex;
@@ -214,8 +282,8 @@
       margin-bottom: 10px;
     }
     .badge {
-      background: rgba(0, 0, 0, 0.06);
-      color: #444;
+      background: var(--badge-bg);
+      color: var(--badge-text);
       padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
@@ -227,7 +295,7 @@
     .song-card h3 { 
       margin: 0 0 5px 0; 
       font-size: 18px; 
-      color: #111; 
+      color: var(--text-main); 
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -237,7 +305,7 @@
     .card-footer {
       margin-top: auto; 
       padding-top: 15px;
-      border-top: 1px dashed #eee;
+      border-top: 1px dashed var(--dashed-border);
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -246,8 +314,8 @@
       display: block;
       width: 100%;
       text-align: center;
-      background: #f1f1f1;
-      color: var(--primary);
+      background: var(--btn-bg);
+      color: var(--text-main);
       text-decoration: none;
       padding: 10px;
       border-radius: 10px;
@@ -258,7 +326,7 @@
       border: none;
       cursor: pointer;
     }
-    .play-btn:hover { background: var(--primary); color: white; }
+    .play-btn:hover { background: var(--primary); color: var(--primary-text-inv); }
     .card-actions-row {
       display: flex;
       gap: 5px;
@@ -267,15 +335,15 @@
       flex: 1;
       padding: 8px;
       border-radius: 8px;
-      border: 1px solid #ddd;
-      background: white;
+      border: 1px solid var(--btn-border);
+      background: var(--input-bg);
       cursor: pointer;
       font-size: 12px;
       font-weight: bold;
-      color: #666;
+      color: var(--text-sub);
       transition: 0.2s;
     }
-    .card-sub-btn:hover { background: #f9f9f9; color: #333; }
+    .card-sub-btn:hover { background: var(--hover-bg); color: var(--text-main); }
     .playlist-layout {
       display: grid;
       grid-template-columns: 250px 1fr;
@@ -302,23 +370,24 @@
       justify-content: space-between;
       align-items: center;
     }
-    .playlist-menu li:hover { background: rgba(0,0,0,0.04); }
-    .playlist-menu li.active { background: var(--primary); color: white; }
+    .playlist-menu li:hover { background: var(--hover-bg); }
+    .playlist-menu li.active { background: var(--primary); color: var(--primary-text-inv); }
     .btn-create-pl {
       width: 100%;
       padding: 10px;
-      background: #e0e0e0;
+      background: var(--btn-bg-strong);
+      color: var(--text-main);
       border: none;
       border-radius: 8px;
       font-weight: bold;
       cursor: pointer;
     }
-    .btn-create-pl:hover { background: #ccc; }
+    .btn-create-pl:hover { background: var(--accent); color: var(--primary-text-inv); }
     .playlist-main { flex: 1; }
     .playlist-meta-actions {
       margin-top: 20px;
       padding-top: 15px;
-      border-top: 1px dashed #ddd;
+      border-top: 1px dashed var(--btn-border);
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -329,10 +398,10 @@
       left: 0;
       right: 0;
       height: 90px;
-      background: rgba(255, 255, 255, 0.92);
+      background: var(--player-bg);
       backdrop-filter: blur(15px);
-      border-top: 1px solid rgba(0, 0, 0, 0.08);
-      box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.05);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -5px 25px var(--shadow-color);
       z-index: 999;
       display: grid;
       grid-template-columns: 280px 1fr 280px;
@@ -341,21 +410,21 @@
       box-sizing: border-box;
     }
     .player-info { display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
-    .player-info .track-name { font-weight: bold; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .player-info .track-name { font-weight: bold; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
     .player-info .track-artist { font-size: 12px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .player-center { display: flex; flex-direction: column; align-items: center; gap: 5px; }
     .player-controls { display: flex; align-items: center; gap: 20px; }
-    .player-btn-icon { background: none; border: none; font-size: 18px; cursor: pointer; color: #555; transition: 0.2s; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-    .player-btn-icon:hover { color: #000; background: rgba(0,0,0,0.05); }
-    .player-btn-icon.active { color: #000; background: rgba(0,0,0,0.1); }
-    .player-btn-icon.btn-main-play { font-size: 24px; background: var(--primary); color: white; width: 42px; height: 42px; }
-    .player-btn-icon.btn-main-play:hover { background: #000; color: white; scale: 1.05; }
-    .progress-container { display: flex; align-items: center; width: 100%; max-width: 500px; gap: 10px; font-size: 11px; color: #777; }
-    .progress-bar-wrap { flex: 1; height: 4px; background: #ddd; border-radius: 2px; position: relative; cursor: pointer; }
+    .player-btn-icon { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--player-icon); transition: 0.2s; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .player-btn-icon:hover { color: var(--text-main); background: var(--hover-strong); }
+    .player-btn-icon.active { color: var(--text-main); background: var(--hover-bg); }
+    .player-btn-icon.btn-main-play { font-size: 24px; background: var(--primary); color: var(--primary-text-inv); width: 42px; height: 42px; }
+    .player-btn-icon.btn-main-play:hover { background: var(--accent); color: var(--primary-text-inv); scale: 1.05; }
+    .progress-container { display: flex; align-items: center; width: 100%; max-width: 500px; gap: 10px; font-size: 11px; color: var(--text-sub); }
+    .progress-bar-wrap { flex: 1; height: 4px; background: var(--btn-border); border-radius: 2px; position: relative; cursor: pointer; }
     .progress-bar-fill { height: 100%; background: var(--primary); border-radius: 2px; width: 0%; }
     .player-right { display: flex; align-items: center; justify-content: flex-end; gap: 15px; }
     .volume-container { display: flex; align-items: center; gap: 8px; }
-    .volume-slider { -webkit-appearance: none; width: 80px; height: 4px; background: #ddd; border-radius: 2px; outline: none; cursor: pointer; }
+    .volume-slider { -webkit-appearance: none; width: 80px; height: 4px; background: var(--btn-border); border-radius: 2px; outline: none; cursor: pointer; }
     .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--primary); border-radius: 50%; }
 
     /* YT widget 視窗，初始為標準大小，縮放按鈕固定在容器外可見處 */
@@ -394,8 +463,8 @@
       top: -10px;
       right: -10px;
       background: var(--primary);
-      color: white;
-      border: 2px solid white;
+      color: var(--primary-text-inv);
+      border: 2px solid var(--input-bg);
       border-radius: 50%;
       width: 28px;
       height: 28px;
@@ -408,14 +477,15 @@
       justify-content: center;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
-    .yt-toggle-btn:hover { background: #000; }
+    .yt-toggle-btn:hover { background: var(--accent); }
 
     .dropdown-menu {
       position: absolute;
-      background: white;
-      border: 1px solid #ddd;
+      background: var(--dd-menu-bg);
+      color: var(--text-main);
+      border: 1px solid var(--btn-border);
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px var(--shadow-strong);
       z-index: 1010;
       display: none;
       list-style: none;
@@ -429,13 +499,13 @@
       cursor: pointer;
       font-weight: bold;
     }
-    .dropdown-menu li:hover { background: #f5f5f5; }
+    .dropdown-menu li:hover { background: var(--dd-menu-hover); }
 
     /* 播放清單彈窗 */
     .queue-modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.5);
       z-index: 2000;
       display: none;
       align-items: center;
@@ -444,19 +514,20 @@
     }
     .queue-modal-overlay.show { display: flex; }
     .queue-modal {
-      background: white;
+      background: var(--modal-bg);
+      color: var(--text-main);
       width: 90%;
       max-width: 600px;
       max-height: 75vh;
       border-radius: 15px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
     .queue-modal-header {
       padding: 18px 22px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--dashed-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -467,7 +538,7 @@
       border: none;
       font-size: 22px;
       cursor: pointer;
-      color: #888;
+      color: var(--text-sub);
       line-height: 1;
     }
     .queue-modal-body {
@@ -477,21 +548,21 @@
     }
     .queue-modal-item {
       padding: 12px 22px;
-      border-bottom: 1px solid #f5f5f5;
+      border-bottom: 1px solid var(--dashed-border);
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 12px;
       transition: 0.15s;
     }
-    .queue-modal-item:hover { background: #fafafa; }
+    .queue-modal-item:hover { background: var(--modal-item-hover); }
     .queue-modal-item.current {
-      background: rgba(0,0,0,0.04);
+      background: var(--row-current);
       box-shadow: inset 3px 0 0 var(--primary);
     }
     .queue-modal-item .idx {
       width: 24px;
-      color: #999;
+      color: var(--text-light);
       font-size: 13px;
       text-align: center;
       flex-shrink: 0;
@@ -509,7 +580,7 @@
     }
     .queue-modal-item .info .artist {
       font-size: 12px;
-      color: #888;
+      color: var(--text-sub);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -518,14 +589,14 @@
       background: none;
       border: none;
       font-size: 14px;
-      color: #aaa;
+      color: var(--text-light);
       cursor: pointer;
       padding: 4px 8px;
     }
     .queue-modal-item .remove:hover { color: #c62828; }
     .queue-modal-footer {
       padding: 12px 22px;
-      border-top: 1px solid #eee;
+      border-top: 1px solid var(--dashed-border);
       display: flex;
       justify-content: flex-end;
       gap: 8px;
@@ -533,30 +604,53 @@
     .queue-modal-footer button {
       padding: 8px 14px;
       border-radius: 6px;
-      border: 1px solid #ddd;
-      background: white;
+      border: 1px solid var(--btn-border);
+      background: var(--input-bg);
+      color: var(--text-main);
       cursor: pointer;
       font-weight: bold;
       font-size: 13px;
     }
-    .queue-modal-footer button:hover { background: #f5f5f5; }
+    .queue-modal-footer button:hover { background: var(--hover-bg); }
 
     footer {
       text-align: center;
       padding: 25px 10px 40px 10px;
       font-size: 13px;
-      color: #555;
-      background: rgba(255, 255, 255, 0.7);
+      color: var(--text-sub);
+      background: var(--footer-bg);
       backdrop-filter: blur(5px);
-      border-top: 1px solid rgba(224, 224, 224, 0.5);
+      border-top: 1px solid var(--border);
       line-height: 1.8;
     }
     footer .info-row { margin-bottom: 6px; }
-    footer .disclaimer { font-size: 11px; color: #888; margin-top: 4px; }
-    footer a { color: #222; font-weight: bold; text-decoration: none; border-bottom: 1px dotted #555; transition: 0.2s; }
-    footer a:hover { color: #000; border-bottom-style: solid; }
-    #loader { display: none; text-align: center; padding: 50px; font-weight: bold; color: #999; }
-    .empty-msg { text-align: center; color: #999; padding: 40px; font-weight: bold; }
+    footer .disclaimer { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+    footer a { color: var(--text-main); font-weight: bold; text-decoration: none; border-bottom: 1px dotted var(--text-sub); transition: 0.2s; }
+    footer a:hover { color: var(--primary); border-bottom-style: solid; }
+    #loader { display: none; text-align: center; padding: 50px; font-weight: bold; color: var(--text-sub); }
+    .empty-msg { text-align: center; color: var(--text-sub); padding: 40px; font-weight: bold; }
+
+    /* 主題切換按鈕 */
+    .theme-toggle {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.1);
+      color: #ddd;
+      border: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .theme-toggle:hover { background: rgba(255,255,255,0.18); transform: translateY(-50%) scale(1.08); }
+    .nav-container { position: relative; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @media (max-width: 768px) {
       .player-bar { grid-template-columns: 1fr auto; padding: 0 15px; height: 80px; }
@@ -567,6 +661,20 @@
       #yt-widget-container.minimized { width: 44px; height: 44px; }
     }
   </style>
+  <script>
+    // 提早執行避免主題切換閃光
+    (function() {
+      try {
+        var stored = localStorage.getItem('antrovia_theme');
+        if (stored === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else if (!stored) {
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (prefersDark) document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch(e) {}
+    })();
+  </script>
 </head>
 <body>
 
@@ -575,6 +683,7 @@
     <button id="nav-search" class="nav-btn active" onclick="switchView('search-view')">🔍 歌曲搜尋</button>
     <button id="nav-summary" class="nav-btn" onclick="summaryBtnClick()">🎵 所有歌曲</button>
     <button id="nav-playlist" class="nav-btn" onclick="playlistBtnClick()">📂 我的歌單</button>
+    <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" title="切換深色 / 淺色模式">🌙</button>
   </div>
 </nav>
 
@@ -962,7 +1071,7 @@
     }
     actionContainer.innerHTML = `<button class="btn-action-global" onclick="playAllCurrentSearch()">▶ 播放所有搜尋結果</button>`;
     let html = `<table class="results-table">
-      <thead><tr><th></th><th>日期 / 標題</th><th>歌曲 / 原唱</th><th>時間區間</th><th>功能</th></tr></thead>
+      <thead><tr><th></th><th>日期 / 標題</th><th>歌曲 / 原唱</th><th>功能</th></tr></thead>
       <tbody>`;
     results.forEach((r, idx) => {
       let tagHtml = '';
@@ -974,8 +1083,6 @@
       const encodedItem = encodeURIComponent(JSON.stringify(r));
       const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === r.link && playQueue[currentQueueIndex].song === r.song);
       const rowClass = isCurrent ? 'playing-row' : '';
-      let displayTimeRange = r.startTime ? r.startTime : '00:00';
-      if (r.endTime) displayTimeRange += ' - ' + r.endTime;
       html += `<tr class="${rowClass}" id="track-row-${idx}">
         <td style="text-align:center; width:40px;">
           <button class="btn-table-play" onclick="playSingleTrackInstant('${encodedItem}')">▶</button>
@@ -985,7 +1092,6 @@
           <strong>${r.song}</strong>${tagHtml}<br>
           <small style="color:#999">${r.artist}</small>
         </td>
-        <td style="color:#666; font-size:13px;">${displayTimeRange}</td>
         <td style="width:50px; text-align:center;">
           <button class="btn-table-more" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
         </td>
@@ -1060,10 +1166,10 @@
           <p>${s.artist}</p>
           <div class="card-footer">
             <div style="font-size:11px; color:#aaa; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">最近：${s.lastTitle}</div>
-            <button onclick="playSingleTrackInstant('${encodedItem}')" class="play-btn">▶ 播放最近版本</button>
+            <button onclick="addTrackToQueueDirect('${encodedItem}')" class="play-btn">＋ 將最近版本加入清單</button>
             <div class="card-actions-row">
               <button onclick="jumpToSearch('${s.name.replace(/'/g, "\\'")}')" class="card-sub-btn">🔍 紀錄</button>
-              <button onclick="addTrackToQueueDirect('${encodedItem}')" class="card-sub-btn">＋ 清單</button>
+              <button onclick="replaceCurrentAndPlay('${encodedItem}')" class="card-sub-btn">▶ 切歌立即播放</button>
             </div>
           </div>
         </div>
@@ -1101,29 +1207,17 @@
       return;
     }
     let html = `<table class="results-table">
-      <thead><tr><th></th><th>歌曲 / 原唱</th><th>時間範圍</th><th>來源歌回標題</th><th>操作</th></tr></thead>
+      <thead><tr><th></th><th>歌曲 / 原唱</th><th>來源歌回標題</th><th>操作</th></tr></thead>
       <tbody>`;
     tracks.forEach((t, idx) => {
       const encodedItem = encodeURIComponent(JSON.stringify(t));
       const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === t.link && playQueue[currentQueueIndex].song === t.song);
       const rowClass = isCurrent ? 'playing-row' : '';
-      // 顯示時間範圍：優先用 startTime/endTime 字串，沒有就從秒數推算
-      let displayTimeRange;
-      if (t.startTime) {
-        displayTimeRange = t.startTime;
-        if (t.endTime) displayTimeRange += ' - ' + t.endTime;
-      } else {
-        const s = parseStartSec(t);
-        const e = parseEndSec(t);
-        displayTimeRange = formatTime(s);
-        if (e > 0) displayTimeRange += ' - ' + formatTime(e);
-      }
       html += `<tr class="${rowClass}">
         <td style="text-align:center; width:40px;">
           <button class="btn-table-play" onclick="playPlaylistTrackAtIndex('${playlistName.replace(/'/g, "\\'")}', ${idx})">▶</button>
         </td>
         <td><strong>${t.song}</strong><br><small style="color:#999">${t.artist || ''}</small></td>
-        <td style="color:#666; font-size:13px;">${displayTimeRange}</td>
         <td style="color:#888; font-size:12px; max-width:300px;">${t.title || '-'}</td>
         <td style="width:50px; text-align:center;">
           <button class="btn-table-more" onclick="removeTrackFromPlaylist(event, '${playlistName.replace(/'/g, "\\'")}', ${idx})">❌</button>
@@ -1258,11 +1352,31 @@
   // 停止播放並重置 UI 狀態（用於整份清單播完）
   function stopPlayback() {
     currentTrackEndSeconds = 0;
-    if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
-      try { ytPlayer.pauseVideo(); } catch(e) {}
+    if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+      try { ytPlayer.stopVideo(); } catch(e) {}
+    }
+    // 徹底清空 iframe，避免殘留最後一幀畫面
+    if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+      try {
+        // 用空字串清掉 video
+        ytPlayer.cueVideoById({ videoId: '' });
+      } catch(e) {}
     }
     document.getElementById('pb-play-toggle').innerText = "▶";
+    document.getElementById('pb-current-time').innerText = "0:00";
+    document.getElementById('pb-total-time').innerText = "0:00";
+    document.getElementById('pb-progress-fill').style.width = "0%";
     updateTabTitle(false);
+    // 自動縮小 YT 視窗，視覺上「結束」
+    const container = document.getElementById('yt-widget-container');
+    if (container && !container.classList.contains('minimized')) {
+      container.classList.add('minimized');
+      const btn = container.querySelector('.yt-toggle-btn');
+      if (btn) {
+        btn.innerText = "⇱";
+        btn.title = "展開視窗";
+      }
+    }
   }
 
   function playPrev() {
@@ -1447,6 +1561,21 @@
     alert(`已將「${track.song}」加入播放清單。`);
   }
 
+  // 切歌立即播放：取代目前播放位置那首，並立即播放，清單其他曲目保留
+  function replaceCurrentAndPlay(encodedItem) {
+    const track = JSON.parse(decodeURIComponent(encodedItem));
+    if (playQueue.length === 0 || currentQueueIndex < 0) {
+      // 沒人在播 → 直接放清單尾並播
+      playQueue.push(track);
+      currentQueueIndex = playQueue.length - 1;
+      playTrackAtIndex(currentQueueIndex);
+    } else {
+      // 取代目前位置
+      playQueue[currentQueueIndex] = track;
+      playTrackAtIndex(currentQueueIndex);
+    }
+  }
+
   function jumpToSearch(songName) {
     switchView('search-view');
     document.getElementById('keyword').value = songName;
@@ -1587,9 +1716,41 @@
     renderQueueModal();
   }
 
+  // ===== 主題切換 =====
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.innerText = '☀️';
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.innerText = '🌙';
+    }
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('antrovia_theme', next);
+    applyTheme(next);
+  }
+
+  function initTheme() {
+    const stored = localStorage.getItem('antrovia_theme');
+    if (stored === 'dark' || stored === 'light') {
+      applyTheme(stored);
+    } else {
+      // 跟隨系統設定
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(prefersDark ? 'dark' : 'light');
+    }
+  }
+
   document.addEventListener('click', hideContextMenu);
 
   window.onload = function() {
+    initTheme();
     initStorage();
     loadYoutubeAPI();
   };
