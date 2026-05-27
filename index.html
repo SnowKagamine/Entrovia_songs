@@ -870,14 +870,30 @@
 
   function extractVideoId(url) {
     if (!url) return null;
-    let videoId = "";
-    // 支援 youtu.be/、watch?v=、embed/、shorts/、v/
-    const regExp = /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/))([A-Za-z0-9_-]{11})/;
-    const match = url.match(regExp);
-    if (match && match[1]) {
-      videoId = match[1];
+    let workUrl = String(url);
+
+    // 處理 Google 重新導向: https://www.google.com/url?q=<encoded_real_url>&...
+    const gMatch = workUrl.match(/[?&]q=([^&]+)/);
+    if (gMatch && workUrl.indexOf('google.com/url') !== -1) {
+      try {
+        workUrl = decodeURIComponent(gMatch[1]);
+      } catch(e) {}
     }
-    return videoId || null;
+
+    // 1) 通用格式
+    let regExp = /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/))([A-Za-z0-9_-]{11})/;
+    let match = workUrl.match(regExp);
+    if (match && match[1]) return match[1];
+
+    // 2) 退路:任何地方出現的 v=XXXXXXXXXXX
+    match = workUrl.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+    if (match && match[1]) return match[1];
+
+    // 3) 最後退路:整個網址裡找一段 11 碼且前後不是字元的
+    match = workUrl.match(/(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{11})(?:[^A-Za-z0-9_-]|$)/);
+    if (match && match[1]) return match[1];
+
+    return null;
   }
 
   function switchView(viewId) {
@@ -1171,8 +1187,11 @@
     
     const videoId = extractVideoId(track.link);
     if (!videoId) {
-      console.error("無法解析影片 ID：", track.link, track);
-      alert("無法解析此歌曲的影片連結，請檢查資料來源。\n\n連結: " + (track.link || '(空白)'));
+      console.error("無法解析影片 ID。Track 完整資料：", track);
+      alert("無法解析此歌曲的影片連結。\n\n" +
+            "歌曲：" + (track.song || '(空)') + "\n" +
+            "原始連結：" + (track.link || '(空白 — GAS 沒有回傳 link 欄位)') + "\n\n" +
+            "請按 F12 開啟瀏覽器主控台 (Console) 查看完整資料，並回報給開發者。");
       return;
     }
     
