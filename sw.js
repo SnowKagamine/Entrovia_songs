@@ -1,8 +1,8 @@
-// 安特羅迦 PWA Service Worker
-// 策略:
-//  - 靜態檔(index.html/manifest/icon)用 stale-while-revalidate
-//  - GAS API 不快取(避免拿到舊資料)
-//  - YT iframe 等第三方資源不攔截
+// Antrovia PWA Service Worker
+// Cache strategy:
+//   - Static assets: stale-while-revalidate
+//   - GAS API: no cache (always fresh data)
+//   - YouTube and 3rd party: bypass (no intercept)
 
 const CACHE_NAME = 'antrovia-v1';
 const STATIC_ASSETS = [
@@ -16,7 +16,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // 個別 try/catch:某個資源 404 不會炸整個快取
+      // Cache each asset individually so one 404 doesn't break the whole install
       return Promise.all(STATIC_ASSETS.map(url =>
         cache.add(url).catch(err => console.warn('SW skip cache:', url, err))
       ));
@@ -38,7 +38,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // GAS / YouTube / 第三方:不攔截,直接走網路
+  // Bypass GAS / YouTube / third party hosts
   if (url.hostname.includes('script.google.com') ||
       url.hostname.includes('youtube.com') ||
       url.hostname.includes('ytimg.com') ||
@@ -48,7 +48,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 同源:stale-while-revalidate
+  // Same origin: stale-while-revalidate
   if (url.origin === self.location.origin) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) =>
