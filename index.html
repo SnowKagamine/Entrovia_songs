@@ -699,6 +699,35 @@
     }
     .skeleton-table-row .sk-cell { height: 14px; border-radius: 6px; }
 
+    /* 視角切換 Tabs(歌曲清單 / 依直播分組 / 最近播放) */
+    .view-mode-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      background: var(--card);
+      padding: 6px;
+      border-radius: 12px;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 4px 15px var(--shadow-color);
+    }
+    .vm-tab {
+      flex: 1;
+      background: none;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .vm-tab:hover { background: var(--hover-bg); color: var(--text-main); }
+    .vm-tab.active { background: var(--primary); color: var(--primary-text-inv); }
+    @media (max-width: 768px) {
+      .vm-tab { padding: 8px 6px; font-size: 12px; }
+    }
+
     /* 時間軸瀏覽 */
     .timeline-stream {
       background: var(--card);
@@ -965,7 +994,6 @@
   <div class="nav-container">
     <button id="nav-search" class="nav-btn active" onclick="switchView('search-view')">🔍 歌曲搜尋</button>
     <button id="nav-summary" class="nav-btn" onclick="summaryBtnClick()">🎵 所有歌曲</button>
-    <button id="nav-timeline" class="nav-btn" onclick="timelineBtnClick()">📅 直播時間軸</button>
     <button id="nav-playlist" class="nav-btn" onclick="playlistBtnClick()">📂 我的歌單</button>
     <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" title="切換深色 / 淺色模式">🌙</button>
   </div>
@@ -974,10 +1002,18 @@
 <div class="main-content">
   <section id="search-view" class="view-section active">
     <div class="search-bar">
-      <input type="text" id="keyword" placeholder="輸入歌曲、原唱，或直播標題關鍵字..." onkeypress="if(event.key==='Enter') handleSearch()">
+      <input type="text" id="keyword" placeholder="搜尋歌曲、原唱,或直播標題..." oninput="onKeywordChange()" onkeypress="if(event.key==='Enter') handleSearch()">
       <button class="btn-search" onclick="handleSearch()">搜尋</button>
     </div>
-    <div style="margin-bottom: 15px; display: flex; justify-content: flex-end;" id="search-actions-container"></div>
+    <div class="view-mode-tabs">
+      <button class="vm-tab active" data-mode="list" onclick="setSearchMode('list')">📋 歌曲清單</button>
+      <button class="vm-tab" data-mode="timeline" onclick="setSearchMode('timeline')">📅 依直播分組</button>
+      <button class="vm-tab" data-mode="recent" onclick="setSearchMode('recent')">🕒 最近播放</button>
+    </div>
+    <div style="margin-bottom: 15px; display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
+      <span style="font-size:13px; color:var(--text-sub);" id="search-stats"></span>
+      <span id="search-actions-container"></span>
+    </div>
     <div id="search-results"></div>
   </section>
 
@@ -997,17 +1033,6 @@
       <button class="btn-action-global" onclick="playAllCurrentSummary()">▶ 播放整頁歌曲</button>
     </div>
     <div class="summary-grid" id="summary-results"></div>
-  </section>
-
-  <section id="timeline-view" class="view-section">
-    <div class="filter-controls">
-      <div class="control-group">
-        <label for="timeline-search">篩選:</label>
-        <input type="text" id="timeline-search" placeholder="輸入直播標題、日期、歌名..." oninput="renderTimeline()">
-      </div>
-      <div style="font-size:13px; color:var(--text-sub);" id="timeline-stats"></div>
-    </div>
-    <div id="timeline-list"></div>
   </section>
 
   <section id="playlist-view" class="view-section">
@@ -1373,14 +1398,12 @@
     document.getElementById(viewId).classList.add('active');
     if(viewId === 'search-view') document.getElementById('nav-search').classList.add('active');
     if(viewId === 'summary-view') document.getElementById('nav-summary').classList.add('active');
-    if(viewId === 'timeline-view') document.getElementById('nav-timeline').classList.add('active');
     if(viewId === 'playlist-view') document.getElementById('nav-playlist').classList.add('active');
     if (viewId !== 'playlist-view') lastActiveView = viewId;
     hideContextMenu();
-    // 搜尋頁:無關鍵字時自動顯示最近播放
+    // 搜尋頁:重新渲染當前視角
     if (viewId === 'search-view') {
-      const kw = document.getElementById('keyword');
-      if (kw && !kw.value.trim()) renderSearchDefault();
+      renderSearchView();
     }
   }
 
@@ -1392,19 +1415,6 @@
   // ===== 時間軸瀏覽 =====
   let timelineCache = null;  // [{date, title, tracks:[...], count}]
   let timelineExpandedSet = new Set();  // 記住哪些 stream 是展開的
-
-  async function timelineBtnClick() {
-    switchView('timeline-view');
-    if (!timelineCache) {
-      renderTimelineSkeleton();
-      if (!allSongsCache) {
-        const results = await apiCall('search', '&q=');
-        allSongsCache = results || [];
-      }
-      buildTimelineCache();
-    }
-    renderTimeline();
-  }
 
   function buildTimelineCache() {
     // 把 allSongsCache 按「date + title」group,保留原始順序
@@ -1427,88 +1437,6 @@
       s.count = s.tracks.length;
       return s;
     });
-  }
-
-  function renderTimelineSkeleton(count = 4) {
-    const list = document.getElementById('timeline-list');
-    let html = '';
-    for (let i = 0; i < count; i++) {
-      html += `<div class="timeline-stream"><div class="timeline-header">
-        <div class="meta">
-          <div class="skeleton sk-line short" style="height:10px; margin-bottom:6px;"></div>
-          <div class="skeleton sk-line medium" style="height:14px;"></div>
-        </div>
-        <div class="skeleton sk-cell" style="width:60px; height:20px;"></div>
-      </div></div>`;
-    }
-    list.innerHTML = html;
-  }
-
-  function renderTimeline() {
-    if (!timelineCache) return;
-    const filter = (document.getElementById('timeline-search')?.value || '').trim().toLowerCase();
-    const filtered = timelineCache.filter(s => {
-      if (!filter) return true;
-      if ((s.date || '').toLowerCase().includes(filter)) return true;
-      if ((s.title || '').toLowerCase().includes(filter)) return true;
-      // 歌曲名匹配
-      return s.tracks.some(t =>
-        (t.song || '').toLowerCase().includes(filter) ||
-        (t.artist || '').toLowerCase().includes(filter)
-      );
-    });
-
-    const stats = document.getElementById('timeline-stats');
-    if (stats) {
-      const totalTracks = timelineCache.reduce((sum, s) => sum + s.count, 0);
-      stats.innerText = `共 ${timelineCache.length} 場直播 / ${totalTracks} 首歌`;
-    }
-
-    const list = document.getElementById('timeline-list');
-    if (filtered.length === 0) {
-      list.innerHTML = '<div class="empty-msg">沒有符合的直播。</div>';
-      return;
-    }
-    list.innerHTML = filtered.map((s, sIdx) => {
-      const streamKey = (s.date || '') + '||' + (s.title || '');
-      const isExpanded = timelineExpandedSet.has(streamKey);
-      const tracksHtml = s.tracks.map(t => {
-        const encodedItem = encodeURIComponent(JSON.stringify(t));
-        const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === t.link && playQueue[currentQueueIndex].song === t.song);
-        return `<div class="timeline-track ${isCurrent ? 'is-current' : ''}">
-          <span class="tr-time">${t.startTime || '00:00'}</span>
-          <div class="tr-info">
-            <div class="name">${t.song}</div>
-            <div class="artist">${t.artist || ''}</div>
-          </div>
-          <div style="display:flex; align-items:center; gap:2px;">
-            ${favoriteButtonHtml(t, encodedItem)}
-            <button class="btn-table-play" title="播放" onclick="playSingleTrackInstant('${encodedItem}')">▶</button>
-            <button class="btn-table-more" title="加入清單" onclick="addTrackToQueueDirect('${encodedItem}')">＋</button>
-            <button class="btn-table-more" title="更多" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
-          </div>
-        </div>`;
-      }).join('');
-      const safeKey = streamKey.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      const streamPayload = encodeURIComponent(JSON.stringify(s.tracks));
-      return `<div class="timeline-stream ${isExpanded ? 'expanded' : ''}" data-key="${escapeAttr(streamKey)}">
-        <div class="timeline-header" onclick="toggleTimelineStream('${safeKey}')">
-          <div class="meta">
-            <div class="stream-date">📅 ${s.date || '?'}</div>
-            <div class="stream-title">${s.title || '?'}</div>
-          </div>
-          <div class="stream-count">🎵 ${s.count} 首</div>
-          <div class="toggle-arrow">▶</div>
-        </div>
-        <div class="timeline-body">
-          <div class="stream-actions">
-            <button onclick="playStreamFromTimeline('${streamPayload}')">▶ 從第一首播放整場</button>
-            <button onclick="queueStreamFromTimeline('${streamPayload}')">＋ 全部加入清單</button>
-          </div>
-          ${tracksHtml}
-        </div>
-      </div>`;
-    }).join('');
   }
 
   function toggleTimelineStream(key) {
@@ -1566,39 +1494,212 @@
     }
   }
 
-  async function handleSearch() {
-    const q = document.getElementById('keyword').value.trim().toLowerCase();
-    if (!q) {
-      renderSearchDefault();
-      return;
-    }
+  // ===== 搜尋頁:三視角統一入口 =====
+  let searchViewMode = 'list'; // 'list' | 'timeline' | 'recent'
+
+  async function ensureSongsLoaded() {
     if (!allSongsCache) {
-      renderSearchSkeleton();
       const results = await apiCall('search', '&q=');
       allSongsCache = results || [];
+      buildTimelineCache();
+    } else if (!timelineCache) {
+      buildTimelineCache();
     }
-    const filtered = allSongsCache.filter(r => 
-      (r.song && r.song.toLowerCase().includes(q)) || 
-      (r.artist && r.artist.toLowerCase().includes(q)) ||
-      (r.title && r.title.toLowerCase().includes(q))
-    );
-    renderSearch(filtered);
   }
 
-  // 搜尋框空白時:顯示最近播放
-  function renderSearchDefault() {
-    const container = document.getElementById('search-results');
-    const actionContainer = document.getElementById('search-actions-container');
-    actionContainer.innerHTML = '';
-    if (!recentPlays || recentPlays.length === 0) {
-      container.innerHTML = '<div class="empty-msg">輸入歌曲、原唱或直播標題關鍵字開始搜尋。<br><span style="font-weight:normal; color:var(--text-light); font-size:13px;">播放過的歌曲會記錄在這裡。</span></div>';
+  function setSearchMode(mode) {
+    searchViewMode = mode;
+    // 更新 tab 視覺
+    document.querySelectorAll('.vm-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    renderSearchView();
+  }
+
+  async function handleSearch() {
+    // 預設按搜尋鈕 / Enter → 進入歌曲清單模式
+    if (searchViewMode === 'recent') setSearchMode('list');
+    else renderSearchView();
+  }
+
+  let keywordChangeTimer = null;
+  function onKeywordChange() {
+    // 在「最近播放」模式下打字,自動切到「歌曲清單」模式
+    if (searchViewMode === 'recent') {
+      setSearchMode('list');
       return;
     }
-    let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3 style="margin:0; font-size:16px; color:var(--text-main);">🕒 最近播放</h3>
-      <button class="btn-table-more" style="font-size:12px;" onclick="clearRecentPlays()" title="清空最近播放">🗑 清空</button>
-    </div>`;
-    html += `<table class="results-table"><thead><tr><th></th><th>歌曲 / 原唱</th><th>來源歌回</th><th></th></tr></thead><tbody>`;
+    if (keywordChangeTimer) clearTimeout(keywordChangeTimer);
+    keywordChangeTimer = setTimeout(() => {
+      renderSearchView();
+    }, 200);
+  }
+
+  // 統一渲染函式
+  async function renderSearchView() {
+    const q = document.getElementById('keyword').value.trim().toLowerCase();
+    const container = document.getElementById('search-results');
+    const actionContainer = document.getElementById('search-actions-container');
+    const statsEl = document.getElementById('search-stats');
+    actionContainer.innerHTML = '';
+    if (statsEl) statsEl.innerText = '';
+
+    if (searchViewMode === 'recent') {
+      renderRecentView();
+      return;
+    }
+
+    // 需要 allSongs 資料
+    if (!allSongsCache) {
+      renderSearchSkeleton();
+      await ensureSongsLoaded();
+    } else if (searchViewMode === 'timeline' && !timelineCache) {
+      buildTimelineCache();
+    }
+
+    if (searchViewMode === 'list') {
+      renderListView(q);
+    } else if (searchViewMode === 'timeline') {
+      renderTimelineView(q);
+    }
+  }
+
+  // 視角一:歌曲清單(原本 renderSearch 的邏輯,但有/無關鍵字都顯示)
+  function renderListView(q) {
+    const container = document.getElementById('search-results');
+    const actionContainer = document.getElementById('search-actions-container');
+    const statsEl = document.getElementById('search-stats');
+    const results = q
+      ? allSongsCache.filter(r =>
+          (r.song && r.song.toLowerCase().includes(q)) ||
+          (r.artist && r.artist.toLowerCase().includes(q)) ||
+          (r.title && r.title.toLowerCase().includes(q))
+        )
+      : allSongsCache;
+
+    if (!results || results.length === 0) {
+      container.innerHTML = q
+        ? '<div class="empty-msg">查無資料,換個關鍵字試試看?</div>'
+        : '<div class="empty-msg">尚無資料。</div>';
+      return;
+    }
+
+    if (statsEl) statsEl.innerText = `共 ${results.length} 首`;
+    actionContainer.innerHTML = `<button class="btn-action-global" onclick="playFilteredList()">▶ 播放全部</button>`;
+
+    let html = `<table class="results-table">
+      <thead><tr><th></th><th>日期 / 標題</th><th>歌曲 / 原唱</th><th>功能</th></tr></thead>
+      <tbody>`;
+    results.forEach((r, idx) => {
+      let tagHtml = '';
+      if (r.isShorts) tagHtml = `<span style="background:#ffebee; color:#c62828; border:1px solid #ffcdd2; padding:1px 6px; font-size:11px; font-weight:bold; border-radius:10px; margin-left:5px; display:inline-block; vertical-align:middle;">Shorts</span>`;
+      else if (r.isVideo) tagHtml = `<span style="background:#eceff1; color:#37474f; border:1px solid #b0bec5; padding:1px 6px; font-size:11px; font-weight:bold; border-radius:10px; margin-left:5px; display:inline-block; vertical-align:middle;">影片</span>`;
+      const encodedItem = encodeURIComponent(JSON.stringify(r));
+      const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === r.link && playQueue[currentQueueIndex].song === r.song);
+      const rowClass = isCurrent ? 'playing-row' : '';
+      html += `<tr class="${rowClass}">
+        <td style="text-align:center; width:40px;">
+          <button class="btn-table-play" onclick="playSingleTrackInstant('${encodedItem}')">▶</button>
+        </td>
+        <td style="color:var(--text-sub); font-size:12px; max-width:200px;"><strong>${r.date}</strong><br>${r.title}</td>
+        <td>
+          <strong>${r.song}</strong>${tagHtml}<br>
+          <small style="color:var(--text-light)">${r.artist}</small>
+        </td>
+        <td style="width:160px; text-align:center; white-space:nowrap;">
+          ${favoriteButtonHtml(r, encodedItem)}
+          <button class="btn-table-more" title="切歌立即播放(取代當前播放)" onclick="replaceCurrentAndPlay('${encodedItem}')">⇆</button>
+          <button class="btn-table-more" title="加入播放清單" onclick="addTrackToQueueDirect('${encodedItem}')">＋</button>
+          <button class="btn-table-more" title="更多功能" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  // 視角二:依直播分組
+  function renderTimelineView(q) {
+    const container = document.getElementById('search-results');
+    const actionContainer = document.getElementById('search-actions-container');
+    const statsEl = document.getElementById('search-stats');
+    if (!timelineCache || timelineCache.length === 0) {
+      container.innerHTML = '<div class="empty-msg">尚無資料。</div>';
+      return;
+    }
+    const filtered = timelineCache.filter(s => {
+      if (!q) return true;
+      if ((s.date || '').toLowerCase().includes(q)) return true;
+      if ((s.title || '').toLowerCase().includes(q)) return true;
+      return s.tracks.some(t =>
+        (t.song || '').toLowerCase().includes(q) ||
+        (t.artist || '').toLowerCase().includes(q)
+      );
+    });
+    const totalTracks = filtered.reduce((sum, s) => sum + s.count, 0);
+    if (statsEl) statsEl.innerText = `共 ${filtered.length} 場 / ${totalTracks} 首`;
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-msg">沒有符合的直播。</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map((s) => {
+      const streamKey = (s.date || '') + '||' + (s.title || '');
+      const isExpanded = timelineExpandedSet.has(streamKey);
+      const tracksHtml = s.tracks.map(t => {
+        const encodedItem = encodeURIComponent(JSON.stringify(t));
+        const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === t.link && playQueue[currentQueueIndex].song === t.song);
+        return `<div class="timeline-track ${isCurrent ? 'is-current' : ''}">
+          <span class="tr-time">${t.startTime || '00:00'}</span>
+          <div class="tr-info">
+            <div class="name">${t.song}</div>
+            <div class="artist">${t.artist || ''}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:2px;">
+            ${favoriteButtonHtml(t, encodedItem)}
+            <button class="btn-table-play" title="播放" onclick="playSingleTrackInstant('${encodedItem}')">▶</button>
+            <button class="btn-table-more" title="加入清單" onclick="addTrackToQueueDirect('${encodedItem}')">＋</button>
+            <button class="btn-table-more" title="更多" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
+          </div>
+        </div>`;
+      }).join('');
+      const safeKey = streamKey.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const streamPayload = encodeURIComponent(JSON.stringify(s.tracks));
+      return `<div class="timeline-stream ${isExpanded ? 'expanded' : ''}" data-key="${escapeAttr(streamKey)}">
+        <div class="timeline-header" onclick="toggleTimelineStream('${safeKey}')">
+          <div class="meta">
+            <div class="stream-date">📅 ${s.date || '?'}</div>
+            <div class="stream-title">${s.title || '?'}</div>
+          </div>
+          <div class="stream-count">🎵 ${s.count} 首</div>
+          <div class="toggle-arrow">▶</div>
+        </div>
+        <div class="timeline-body">
+          <div class="stream-actions">
+            <button onclick="playStreamFromTimeline('${streamPayload}')">▶ 從第一首播放整場</button>
+            <button onclick="queueStreamFromTimeline('${streamPayload}')">＋ 全部加入清單</button>
+          </div>
+          ${tracksHtml}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // 視角三:最近播放
+  function renderRecentView() {
+    const container = document.getElementById('search-results');
+    const actionContainer = document.getElementById('search-actions-container');
+    const statsEl = document.getElementById('search-stats');
+    actionContainer.innerHTML = '';
+    if (!recentPlays || recentPlays.length === 0) {
+      container.innerHTML = '<div class="empty-msg">尚未播放過任何歌曲。<br><span style="font-weight:normal; color:var(--text-light); font-size:13px;">播放過的歌曲會記錄在這裡。</span></div>';
+      return;
+    }
+    if (statsEl) statsEl.innerText = `共 ${recentPlays.length} 首`;
+    actionContainer.innerHTML = `<button class="btn-table-more" style="font-size:12px;" onclick="clearRecentPlays()" title="清空最近播放">🗑 清空</button>`;
+
+    let html = `<table class="results-table"><thead><tr><th></th><th>歌曲 / 原唱</th><th>來源歌回</th><th></th></tr></thead><tbody>`;
     recentPlays.forEach((r) => {
       const encodedItem = encodeURIComponent(JSON.stringify(r));
       const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === r.link && playQueue[currentQueueIndex].song === r.song);
@@ -1624,47 +1725,33 @@
     container.innerHTML = html;
   }
 
+  // 播放當前篩選的歌曲清單
+  function playFilteredList() {
+    const q = document.getElementById('keyword').value.trim().toLowerCase();
+    const results = q
+      ? allSongsCache.filter(r =>
+          (r.song && r.song.toLowerCase().includes(q)) ||
+          (r.artist && r.artist.toLowerCase().includes(q)) ||
+          (r.title && r.title.toLowerCase().includes(q))
+        )
+      : allSongsCache;
+    if (!results || results.length === 0) return;
+    playQueue = [...results];
+    currentQueueIndex = 0;
+    playTrackAtIndex(0);
+  }
+
+  // 舊 API 相容(handleUrlParams 還會用到 renderSearchDefault)
+  function renderSearchDefault() {
+    setSearchMode('recent');
+  }
   function renderSearch(results) {
-    const container = document.getElementById('search-results');
-    const actionContainer = document.getElementById('search-actions-container');
-    if (!results || results.length === 0) {
-      container.innerHTML = '<div class="empty-msg">查無資料，換個關鍵字試試看？</div>';
-      actionContainer.innerHTML = '';
-      return;
-    }
-    actionContainer.innerHTML = `<button class="btn-action-global" onclick="playAllCurrentSearch()">▶ 播放所有搜尋結果</button>`;
-    let html = `<table class="results-table">
-      <thead><tr><th></th><th>日期 / 標題</th><th>歌曲 / 原唱</th><th>功能</th></tr></thead>
-      <tbody>`;
-    results.forEach((r, idx) => {
-      let tagHtml = '';
-      if (r.isShorts) {
-        tagHtml = `<span style="background:#ffebee; color:#c62828; border:1px solid #ffcdd2; padding:1px 6px; font-size:11px; font-weight:bold; border-radius:10px; margin-left:5px; display:inline-block; vertical-align:middle;">Shorts</span>`;
-      } else if (r.isVideo) {
-        tagHtml = `<span style="background:#eceff1; color:#37474f; border:1px solid #b0bec5; padding:1px 6px; font-size:11px; font-weight:bold; border-radius:10px; margin-left:5px; display:inline-block; vertical-align:middle;">影片</span>`;
-      }
-      const encodedItem = encodeURIComponent(JSON.stringify(r));
-      const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === r.link && playQueue[currentQueueIndex].song === r.song);
-      const rowClass = isCurrent ? 'playing-row' : '';
-      html += `<tr class="${rowClass}" id="track-row-${idx}">
-        <td style="text-align:center; width:40px;">
-          <button class="btn-table-play" onclick="playSingleTrackInstant('${encodedItem}')">▶</button>
-        </td>
-        <td style="color:#888; font-size:12px; max-width:200px;"><strong>${r.date}</strong><br>${r.title}</td>
-        <td>
-          <strong>${r.song}</strong>${tagHtml}<br>
-          <small style="color:#999">${r.artist}</small>
-        </td>
-        <td style="width:160px; text-align:center; white-space:nowrap;">
-          ${favoriteButtonHtml(r, encodedItem)}
-          <button class="btn-table-more" title="切歌立即播放(取代當前播放)" onclick="replaceCurrentAndPlay('${encodedItem}')">⇆</button>
-          <button class="btn-table-more" title="加入播放清單" onclick="addTrackToQueueDirect('${encodedItem}')">＋</button>
-          <button class="btn-table-more" title="更多功能" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
-        </td>
-      </tr>`;
-    });
-    html += '</tbody></table>';
-    container.innerHTML = html;
+    setSearchMode('list');
+  }
+  // 舊 inline onsearch 觸發
+  async function loadAndRenderInitial() {
+    await ensureSongsLoaded();
+    renderSearchView();
   }
 
   async function loadSummary() {
@@ -2062,9 +2149,7 @@
   // 重新整理當前頁面顯示(刪除歌曲後同步刷新)
   function refreshUIForCurrentView() {
     if (document.getElementById('search-view').classList.contains('active')) {
-      const kw = document.getElementById('keyword').value.trim();
-      if (kw) handleSearch();
-      else renderSearchDefault();
+      renderSearchView();
     } else if (document.getElementById('summary-view').classList.contains('active')) {
       if (summaryCache) processAndRenderSummary();
     } else if (document.getElementById('playlist-view').classList.contains('active')) {
@@ -2788,7 +2873,7 @@
     loadYoutubeAPI();
     bindProgressBar();
     bindKeyboardShortcuts();
-    renderSearchDefault();
+    setSearchMode('recent');
     handleUrlParams();
     registerServiceWorker();
   };
