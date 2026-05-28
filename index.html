@@ -308,7 +308,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      padding-right: 25px;
+      padding-right: 65px;
     }
     .song-card p { margin: 0; font-size: 14px; color: var(--text-sub); }
     .card-footer {
@@ -678,6 +678,36 @@
     .theme-toggle:hover { background: rgba(255,255,255,0.18); transform: translateY(-50%) scale(1.08); }
     .nav-container { position: relative; }
 
+    /* 歌單拖曳排序 */
+    .drag-handle {
+      cursor: grab;
+      color: var(--text-light);
+      text-align: center;
+      width: 30px;
+      font-size: 14px;
+      user-select: none;
+      letter-spacing: -2px;
+    }
+    .drag-handle:hover { color: var(--text-main); }
+    tr.draggable-row.dragging { opacity: 0.4; }
+    tr.draggable-row.drag-over-top { box-shadow: inset 0 3px 0 var(--primary); }
+    tr.draggable-row.drag-over-bottom { box-shadow: inset 0 -3px 0 var(--primary); }
+
+    /* 收藏星星 */
+    .btn-fav {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--text-light);
+      padding: 5px;
+      transition: 0.15s;
+      line-height: 1;
+    }
+    .btn-fav:hover { color: #f5b400; transform: scale(1.15); }
+    .btn-fav.is-fav { color: #f5b400; }
+    .btn-fav.is-fav:hover { color: #d99800; }
+
     /* Toast 通知 */
     #toast-container {
       position: fixed;
@@ -894,10 +924,63 @@
       playlists = { "我的最愛": [] };
       savePlaylistsToStorage();
     }
+    loadRecentPlays();
   }
 
   function savePlaylistsToStorage() {
     localStorage.setItem('antrovia_playlists', JSON.stringify(playlists));
+  }
+
+  // ===== 最近播放 =====
+  const RECENT_MAX = 20;
+  let recentPlays = [];
+
+  function loadRecentPlays() {
+    try {
+      const raw = localStorage.getItem('antrovia_recent');
+      recentPlays = raw ? JSON.parse(raw) : [];
+    } catch(e) { recentPlays = []; }
+  }
+
+  function saveRecentPlays() {
+    try {
+      localStorage.setItem('antrovia_recent', JSON.stringify(recentPlays));
+    } catch(e) {}
+  }
+
+  function pushRecentPlay(track) {
+    if (!track || !track.song) return;
+    // 用 song + artist + link 當識別,避免重複
+    const key = (track.song || '') + '|' + (track.artist || '') + '|' + (track.link || '');
+    recentPlays = recentPlays.filter(t => {
+      const k = (t.song || '') + '|' + (t.artist || '') + '|' + (t.link || '');
+      return k !== key;
+    });
+    recentPlays.unshift({
+      song: track.song,
+      artist: track.artist,
+      link: track.link,
+      title: track.title,
+      start: track.start,
+      end: track.end,
+      startTime: track.startTime,
+      endTime: track.endTime,
+      isShorts: track.isShorts,
+      isVideo: track.isVideo,
+      playedAt: Date.now()
+    });
+    if (recentPlays.length > RECENT_MAX) recentPlays = recentPlays.slice(0, RECENT_MAX);
+    saveRecentPlays();
+  }
+
+  function clearRecentPlays() {
+    if (!confirm("確定要清空最近播放紀錄嗎?")) return;
+    recentPlays = [];
+    saveRecentPlays();
+    if (document.getElementById('search-view').classList.contains('active')) {
+      const kw = document.getElementById('keyword').value.trim();
+      if (!kw) renderSearchDefault();
+    }
   }
 
   function loadYoutubeAPI() {
@@ -1091,6 +1174,11 @@
     if(viewId === 'playlist-view') document.getElementById('nav-playlist').classList.add('active');
     if (viewId !== 'playlist-view') lastActiveView = viewId;
     hideContextMenu();
+    // 搜尋頁:無關鍵字時自動顯示最近播放
+    if (viewId === 'search-view') {
+      const kw = document.getElementById('keyword');
+      if (kw && !kw.value.trim()) renderSearchDefault();
+    }
   }
 
   async function summaryBtnClick() {
@@ -1125,7 +1213,10 @@
 
   async function handleSearch() {
     const q = document.getElementById('keyword').value.trim().toLowerCase();
-    if (!q) return;
+    if (!q) {
+      renderSearchDefault();
+      return;
+    }
     if (!allSongsCache) {
       const results = await apiCall('search', '&q=');
       allSongsCache = results || [];
@@ -1136,6 +1227,45 @@
       (r.title && r.title.toLowerCase().includes(q))
     );
     renderSearch(filtered);
+  }
+
+  // 搜尋框空白時:顯示最近播放
+  function renderSearchDefault() {
+    const container = document.getElementById('search-results');
+    const actionContainer = document.getElementById('search-actions-container');
+    actionContainer.innerHTML = '';
+    if (!recentPlays || recentPlays.length === 0) {
+      container.innerHTML = '<div class="empty-msg">輸入歌曲、原唱或直播標題關鍵字開始搜尋。<br><span style="font-weight:normal; color:var(--text-light); font-size:13px;">播放過的歌曲會記錄在這裡。</span></div>';
+      return;
+    }
+    let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0; font-size:16px; color:var(--text-main);">🕒 最近播放</h3>
+      <button class="btn-table-more" style="font-size:12px;" onclick="clearRecentPlays()" title="清空最近播放">🗑 清空</button>
+    </div>`;
+    html += `<table class="results-table"><thead><tr><th></th><th>歌曲 / 原唱</th><th>來源歌回</th><th></th></tr></thead><tbody>`;
+    recentPlays.forEach((r) => {
+      const encodedItem = encodeURIComponent(JSON.stringify(r));
+      const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === r.link && playQueue[currentQueueIndex].song === r.song);
+      const rowClass = isCurrent ? 'playing-row' : '';
+      let tagHtml = '';
+      if (r.isShorts) tagHtml = `<span style="background:#ffebee; color:#c62828; border:1px solid #ffcdd2; padding:1px 6px; font-size:11px; font-weight:bold; border-radius:10px; margin-left:5px;">Shorts</span>`;
+      else if (r.isVideo) tagHtml = `<span style="background:#eceff1; color:#37474f; border:1px solid #b0bec5; padding:1px 6px; font-size:11px; font-weight:bold; border-radius:10px; margin-left:5px;">影片</span>`;
+      html += `<tr class="${rowClass}">
+        <td style="text-align:center; width:40px;">
+          <button class="btn-table-play" onclick="playSingleTrackInstant('${encodedItem}')">▶</button>
+        </td>
+        <td><strong>${r.song}</strong>${tagHtml}<br><small style="color:var(--text-light)">${r.artist || ''}</small></td>
+        <td style="color:var(--text-sub); font-size:12px; max-width:240px;">${r.title || '-'}</td>
+        <td style="width:160px; text-align:center; white-space:nowrap;">
+          ${favoriteButtonHtml(r, encodedItem)}
+          <button class="btn-table-more" title="切歌立即播放" onclick="replaceCurrentAndPlay('${encodedItem}')">⇆</button>
+          <button class="btn-table-more" title="加入播放清單" onclick="addTrackToQueueDirect('${encodedItem}')">＋</button>
+          <button class="btn-table-more" title="更多功能" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
   }
 
   function renderSearch(results) {
@@ -1169,8 +1299,11 @@
           <strong>${r.song}</strong>${tagHtml}<br>
           <small style="color:#999">${r.artist}</small>
         </td>
-        <td style="width:50px; text-align:center;">
-          <button class="btn-table-more" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
+        <td style="width:160px; text-align:center; white-space:nowrap;">
+          ${favoriteButtonHtml(r, encodedItem)}
+          <button class="btn-table-more" title="切歌立即播放(取代當前播放)" onclick="replaceCurrentAndPlay('${encodedItem}')">⇆</button>
+          <button class="btn-table-more" title="加入播放清單" onclick="addTrackToQueueDirect('${encodedItem}')">＋</button>
+          <button class="btn-table-more" title="更多功能" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
         </td>
       </tr>`;
     });
@@ -1238,7 +1371,10 @@
             <div class="badge">演唱 ${s.count} 次</div>
             ${tagHtml}
           </div>
-          <button class="btn-table-more" style="position:absolute; top:15px; right:15px;" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
+          <div style="position:absolute; top:12px; right:12px; display:flex; align-items:center; gap:2px;">
+            ${favoriteButtonHtml(standardizedItem, encodedItem)}
+            <button class="btn-table-more" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
+          </div>
           <h3 title="${s.name}">${s.name}</h3>
           <p>${s.artist}</p>
           <div class="card-footer">
@@ -1283,26 +1419,97 @@
       tracksContainer.innerHTML = '<div class="empty-msg">此歌單內尚無歌曲，可至「歌曲搜尋」或「所有歌曲」中點擊 ⋮ 進行收藏。</div>';
       return;
     }
-    let html = `<table class="results-table">
-      <thead><tr><th></th><th>歌曲 / 原唱</th><th>來源歌回標題</th><th>操作</th></tr></thead>
+    let html = `<table class="results-table" id="playlist-tracks-table" data-playlist="${escapeAttr(playlistName)}">
+      <thead><tr><th style="width:30px;"></th><th></th><th>歌曲 / 原唱</th><th>來源歌回標題</th><th>操作</th></tr></thead>
       <tbody>`;
     tracks.forEach((t, idx) => {
       const encodedItem = encodeURIComponent(JSON.stringify(t));
       const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === t.link && playQueue[currentQueueIndex].song === t.song);
       const rowClass = isCurrent ? 'playing-row' : '';
-      html += `<tr class="${rowClass}">
+      html += `<tr class="${rowClass} draggable-row" draggable="true" data-idx="${idx}">
+        <td class="drag-handle" title="拖曳排序">⋮⋮</td>
         <td style="text-align:center; width:40px;">
-          <button class="btn-table-play" onclick="playPlaylistTrackAtIndex('${playlistName.replace(/'/g, "\\'")}', ${idx})">▶</button>
+          <button class="btn-table-play" onclick="playPlaylistTrackAtIndex('${escapeJs(playlistName)}', ${idx})">▶</button>
         </td>
-        <td><strong>${t.song}</strong><br><small style="color:#999">${t.artist || ''}</small></td>
-        <td style="color:#888; font-size:12px; max-width:300px;">${t.title || '-'}</td>
+        <td><strong>${t.song}</strong><br><small style="color:var(--text-light)">${t.artist || ''}</small></td>
+        <td style="color:var(--text-sub); font-size:12px; max-width:300px;">${t.title || '-'}</td>
         <td style="width:50px; text-align:center;">
-          <button class="btn-table-more" onclick="removeTrackFromPlaylist(event, '${playlistName.replace(/'/g, "\\'")}', ${idx})">❌</button>
+          <button class="btn-table-more" onclick="removeTrackFromPlaylist(event, '${escapeJs(playlistName)}', ${idx})">❌</button>
         </td>
       </tr>`;
     });
     html += '</tbody></table>';
     tracksContainer.innerHTML = html;
+    bindPlaylistDragSort(playlistName);
+  }
+
+  function escapeAttr(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  }
+  function escapeJs(s) {
+    return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  }
+
+  // 歌單拖曳排序
+  function bindPlaylistDragSort(playlistName) {
+    const table = document.getElementById('playlist-tracks-table');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    let draggingEl = null;
+    let draggingIdx = -1;
+
+    tbody.querySelectorAll('tr.draggable-row').forEach(row => {
+      row.addEventListener('dragstart', (e) => {
+        draggingEl = row;
+        draggingIdx = parseInt(row.dataset.idx, 10);
+        row.classList.add('dragging');
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          // Firefox 需要 setData 才會啟動拖曳
+          try { e.dataTransfer.setData('text/plain', String(draggingIdx)); } catch(err) {}
+        }
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        tbody.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(r => {
+          r.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+        draggingEl = null;
+      });
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!draggingEl || row === draggingEl) return;
+        const rect = row.getBoundingClientRect();
+        const isAbove = e.clientY < rect.top + rect.height / 2;
+        tbody.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(r => {
+          r.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+        row.classList.add(isAbove ? 'drag-over-top' : 'drag-over-bottom');
+      });
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!draggingEl || row === draggingEl) return;
+        const targetIdx = parseInt(row.dataset.idx, 10);
+        const rect = row.getBoundingClientRect();
+        const isAbove = e.clientY < rect.top + rect.height / 2;
+        movePlaylistTrack(playlistName, draggingIdx, targetIdx, isAbove);
+      });
+    });
+  }
+
+  function movePlaylistTrack(playlistName, fromIdx, toIdx, insertBefore) {
+    const list = playlists[playlistName];
+    if (!list || fromIdx === toIdx) return;
+    const [moved] = list.splice(fromIdx, 1);
+    // 從前面移到後面時 toIdx 會少 1
+    let insertAt = toIdx;
+    if (fromIdx < toIdx) insertAt = insertBefore ? toIdx - 1 : toIdx;
+    else insertAt = insertBefore ? toIdx : toIdx + 1;
+    if (insertAt < 0) insertAt = 0;
+    if (insertAt > list.length) insertAt = list.length;
+    list.splice(insertAt, 0, moved);
+    savePlaylistsToStorage();
+    selectPlaylist(playlistName);
   }
 
   function createNewPlaylist() {
@@ -1381,6 +1588,7 @@
         videoId: videoId,
         startSeconds: startSec
       });
+      pushRecentPlay(track);
     } catch (e) {
       console.error("loadVideoById 錯誤:", e);
     }
@@ -2051,7 +2259,6 @@
     if (target < start) target = start;
     if (endSec > 0 && target > endSec - 1) target = endSec - 1;
     ytPlayer.seekTo(target, true);
-    showToast((delta > 0 ? '+' : '') + delta + ' 秒');
   }
 
   function adjustVolume(delta) {
@@ -2109,6 +2316,40 @@
     }
   }
 
+  // ===== 我的最愛 ⭐ =====
+  const FAVORITE_LIST_NAME = "我的最愛";
+
+  function isFavorite(track) {
+    const fav = playlists[FAVORITE_LIST_NAME];
+    if (!fav || !track) return false;
+    const key = (track.song || '') + '|' + (track.artist || '') + '|' + (track.link || '');
+    return fav.some(t => ((t.song || '') + '|' + (t.artist || '') + '|' + (t.link || '')) === key);
+  }
+
+  function toggleFavorite(encodedItem, event) {
+    if (event) event.stopPropagation();
+    const track = JSON.parse(decodeURIComponent(encodedItem));
+    if (!playlists[FAVORITE_LIST_NAME]) playlists[FAVORITE_LIST_NAME] = [];
+    const fav = playlists[FAVORITE_LIST_NAME];
+    const key = (track.song || '') + '|' + (track.artist || '') + '|' + (track.link || '');
+    const idx = fav.findIndex(t => ((t.song || '') + '|' + (t.artist || '') + '|' + (t.link || '')) === key);
+    if (idx >= 0) {
+      fav.splice(idx, 1);
+      showToast(`已從我的最愛移除`);
+    } else {
+      fav.push(track);
+      showToast(`⭐ 已加入我的最愛`);
+    }
+    savePlaylistsToStorage();
+    // 同步刷新各頁面
+    refreshUIForCurrentView();
+  }
+
+  function favoriteButtonHtml(track, encodedItem) {
+    const fav = isFavorite(track);
+    return `<button class="btn-fav ${fav ? 'is-fav' : ''}" title="${fav ? '取消我的最愛' : '加入我的最愛'}" onclick="toggleFavorite('${encodedItem}', event)">${fav ? '★' : '☆'}</button>`;
+  }
+
   document.addEventListener('click', hideContextMenu);
 
   window.onload = function() {
@@ -2117,6 +2358,7 @@
     loadYoutubeAPI();
     bindProgressBar();
     bindKeyboardShortcuts();
+    renderSearchDefault();
     handleUrlParams();
   };
 </script>
