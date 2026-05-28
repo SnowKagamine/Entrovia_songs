@@ -431,7 +431,18 @@
     .player-controls { display: flex; align-items: center; gap: 20px; }
     .player-btn-icon { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--player-icon); transition: 0.2s; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
     .player-btn-icon:hover { color: var(--text-main); background: var(--hover-strong); }
-    .player-btn-icon.active { color: var(--text-main); background: var(--hover-bg); }
+    .player-btn-icon.active { color: var(--primary); background: var(--hover-bg); position: relative; }
+    .player-btn-icon.active::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      background: var(--primary);
+      border-radius: 50%;
+    }
     .player-btn-icon.btn-main-play { font-size: 0; background: var(--primary); color: var(--primary-text-inv); width: 42px; height: 42px; padding: 0; }
     .player-btn-icon.btn-main-play svg { width: 24px; height: 24px; fill: currentColor; display: block; }
     .player-btn-icon.btn-main-play svg.icon-play { margin-left: 3px; } /* 三角形視覺置中微調 */
@@ -2101,7 +2112,7 @@
     // 整輪循環:不移除,只切下一首,放到清單尾循環
     if (repeatMode === 2) {
       if (isShuffle) {
-        currentQueueIndex = Math.floor(Math.random() * playQueue.length);
+        currentQueueIndex = pickRandomIndexExcludingCurrent(playQueue.length, currentQueueIndex);
       } else {
         currentQueueIndex = (currentQueueIndex + 1) % playQueue.length;
       }
@@ -2123,6 +2134,7 @@
     }
 
     if (isShuffle) {
+      // 隨機模式:從剩餘清單隨機挑(此時 splice 已執行,沒有「當前」要排除)
       currentQueueIndex = Math.floor(Math.random() * playQueue.length);
     } else {
       // 移除後索引保持原位,自然會指到「下一首」
@@ -2131,6 +2143,16 @@
       }
     }
     playTrackAtIndex(currentQueueIndex);
+  }
+
+  // 從 0..length-1 隨機挑一個,排除指定索引(避免原地循環同一首)
+  function pickRandomIndexExcludingCurrent(length, exclude) {
+    if (length <= 1) return 0;
+    let r;
+    do {
+      r = Math.floor(Math.random() * length);
+    } while (r === exclude);
+    return r;
   }
 
   // 上一首:因為清單採「播完即移除」,沒有歷史可回退 → 重播當前歌曲
@@ -2207,20 +2229,24 @@
   function toggleShuffle() {
     isShuffle = !isShuffle;
     document.getElementById('pb-shuffle').classList.toggle('active', isShuffle);
+    showToast(isShuffle ? '🔀 隨機播放開啟' : '🔀 隨機播放關閉');
   }
 
   function toggleRepeat() {
     repeatMode = (repeatMode + 1) % 3;
     const btn = document.getElementById('pb-repeat');
+    btn.classList.remove('active', 'mode-single', 'mode-all');
     if (repeatMode === 0) {
       btn.innerText = "🔁";
-      btn.classList.remove('active');
+      showToast('🔁 循環關閉');
     } else if (repeatMode === 1) {
       btn.innerText = "🔂";
-      btn.classList.add('active');
+      btn.classList.add('active', 'mode-single');
+      showToast('🔂 單曲循環');
     } else if (repeatMode === 2) {
       btn.innerText = "🔁";
-      btn.classList.add('active');
+      btn.classList.add('active', 'mode-all');
+      showToast('🔁 整輪循環');
     }
   }
 
