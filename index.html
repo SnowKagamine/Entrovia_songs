@@ -701,12 +701,18 @@
       font-size: 18px;
       color: var(--text-light);
       padding: 5px;
-      transition: 0.15s;
+      transition: color 0.15s, transform 0.15s;
       line-height: 1;
     }
     .btn-fav:hover { color: #f5b400; transform: scale(1.15); }
-    .btn-fav.is-fav { color: #f5b400; }
+    .btn-fav:active { transform: scale(0.85); }
+    .btn-fav.is-fav { color: #f5b400; animation: starPop 0.3s ease; }
     .btn-fav.is-fav:hover { color: #d99800; }
+    @keyframes starPop {
+      0% { transform: scale(0.6); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
 
     /* Toast 通知 */
     #toast-container {
@@ -752,6 +758,30 @@
       .results-table th:nth-child(1), .results-table td:nth-child(1) { display: none; }
       #yt-widget-container { width: 160px; height: 90px; bottom: 90px; }
       #yt-widget-container.minimized { width: 44px; height: 44px; }
+      /* 手機:nav 不換行,字體縮小,主題按鈕放入 flex 流 */
+      .nav-container { flex-wrap: nowrap; padding: 0 8px; gap: 4px; }
+      .nav-btn { padding: 12px 6px; font-size: 13px; flex-shrink: 0; }
+      .theme-toggle {
+        position: static;
+        transform: none;
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
+        flex-shrink: 0;
+        margin-left: auto;
+      }
+      .theme-toggle:hover { transform: scale(1.08); }
+      /* 頁尾快捷鍵提示在手機版自動換行 */
+      footer .shortcut-hint { line-height: 2; }
+    }
+    /* 快捷鍵提示:整句不切斷 */
+    footer .shortcut-hint {
+      font-size: 12px;
+      color: var(--text-light);
+    }
+    footer .shortcut-hint span {
+      display: inline-block;
+      white-space: nowrap;
     }
   </style>
   <script>
@@ -831,8 +861,8 @@
 </div>
 
 <footer>
-  <div class="info-row" style="font-size:12px; color:var(--text-light);">
-    💡 快捷鍵:空白=播放暫停 · ←/→=快退/快進 5 秒 · Shift+←/→=上一首/下一首 · ↑/↓=音量 · M=靜音 · /=搜尋 · L=清單
+  <div class="info-row shortcut-hint">
+    💡 快捷鍵:<span>空白=播放暫停</span> · <span>←/→=快退/快進 5 秒</span> · <span>Shift+←/→=上一首/下一首</span> · <span>↑/↓=音量</span> · <span>M=靜音</span> · <span>/=搜尋</span> · <span>L=清單</span>
   </div>
   <div class="info-row">
     背景：<a href="https://x.com/CSS74134570" target="_blank">奶油醬油</a> 繪製 (X: @CSS74134570) ｜ Ender安德 委託
@@ -1670,6 +1700,7 @@
     if (document.getElementById('search-view').classList.contains('active')) {
       const kw = document.getElementById('keyword').value.trim();
       if (kw) handleSearch();
+      else renderSearchDefault();
     } else if (document.getElementById('summary-view').classList.contains('active')) {
       if (summaryCache) processAndRenderSummary();
     } else if (document.getElementById('playlist-view').classList.contains('active')) {
@@ -2333,6 +2364,7 @@
     const fav = playlists[FAVORITE_LIST_NAME];
     const key = (track.song || '') + '|' + (track.artist || '') + '|' + (track.link || '');
     const idx = fav.findIndex(t => ((t.song || '') + '|' + (t.artist || '') + '|' + (t.link || '')) === key);
+    const nowFav = idx < 0;
     if (idx >= 0) {
       fav.splice(idx, 1);
       showToast(`已從我的最愛移除`);
@@ -2341,8 +2373,42 @@
       showToast(`⭐ 已加入我的最愛`);
     }
     savePlaylistsToStorage();
-    // 同步刷新各頁面
-    refreshUIForCurrentView();
+    // 即時更新所有同首歌的星星按鈕視覺(同一首可能出現在搜尋結果、最近播放、所有歌曲、清單彈窗)
+    updateFavoriteButtonsFor(track, nowFav);
+    // 如果當前在「我的最愛」歌單頁,需要更新表格內容
+    if (document.getElementById('playlist-view').classList.contains('active')) {
+      const activeLi = document.querySelector('.playlist-menu li.active');
+      if (activeLi) {
+        const plName = activeLi.id.replace('pl-menu-item-', '');
+        if (plName === FAVORITE_LIST_NAME) selectPlaylist(plName);
+      }
+    }
+  }
+
+  // 把畫面上所有同 key 的星星按鈕同步成新狀態
+  function updateFavoriteButtonsFor(track, nowFav) {
+    const targetKey = (track.song || '') + '|' + (track.artist || '') + '|' + (track.link || '');
+    document.querySelectorAll('.btn-fav').forEach(btn => {
+      // 從按鈕對應的 onclick 抓 encodedItem 拆出來比對
+      const onclickAttr = btn.getAttribute('onclick') || '';
+      const m = onclickAttr.match(/toggleFavorite\('([^']+)'/);
+      if (!m) return;
+      try {
+        const t = JSON.parse(decodeURIComponent(m[1]));
+        const k = (t.song || '') + '|' + (t.artist || '') + '|' + (t.link || '');
+        if (k === targetKey) {
+          if (nowFav) {
+            btn.classList.add('is-fav');
+            btn.innerText = '★';
+            btn.title = '取消我的最愛';
+          } else {
+            btn.classList.remove('is-fav');
+            btn.innerText = '☆';
+            btn.title = '加入我的最愛';
+          }
+        }
+      } catch(e) {}
+    });
   }
 
   function favoriteButtonHtml(track, encodedItem) {
