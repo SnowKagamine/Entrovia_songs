@@ -4,7 +4,7 @@
 //   - GAS API: no cache (always fresh data)
 //   - YouTube and 3rd party: bypass (no intercept)
 
-const CACHE_NAME = 'antrovia-v1';
+const CACHE_NAME = 'antrovia-v3';
 const STATIC_ASSETS = [
   './',
   './index.html',
