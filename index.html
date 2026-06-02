@@ -926,6 +926,18 @@
       border-bottom-color: var(--primary);
       border-bottom-style: solid;
     }
+    /* 歌名連結 */
+    .song-name-link {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px dotted var(--text-light);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .song-name-link:hover {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      border-bottom-style: solid;
+    }
 
     /* Toast 通知 */
     #toast-container {
@@ -1086,7 +1098,7 @@
     💡 快捷鍵:<span>空白=播放暫停</span> · <span>←/→=快退/快進 5 秒</span> · <span>Shift+←/→=上一首/下一首</span> · <span>↑/↓=音量</span> · <span>M=靜音</span> · <span>/=搜尋</span> · <span>L=清單</span>
   </div>
   <div class="info-row">
-    背景:<a href="https://x.com/mApcm0ElZ9f5BGk" target="_blank">方向</a> ｜ 委託:Ender安德、子廷
+    背景繪製:<a href="https://x.com/mApcm0ElZ9f5BGk" target="_blank">方向</a> ｜ 委託主辦:Ender安德、子廷
   </div>
   <div class="info-row">
     網頁製作者：<a href="https://x.com/SnowKagamine_" target="_blank">玥</a> ｜ 聯絡與問題回饋：<a href="https://forms.google.com/" target="_blank">📝 回饋表單連結</a> ｜ 交流社群：<a href="https://discord.gg/bKwFpPusYj" target="_blank">安特羅迦非官方粉絲群 Discord</a>
@@ -1627,7 +1639,7 @@
         </td>
         <td style="color:var(--text-sub); font-size:12px; max-width:200px;"><strong>${r.date}</strong><br>${streamTitleLink(r.title, r)}</td>
         <td>
-          <strong>${r.song}</strong>${tagHtml}<br>
+          <strong>${songNameLink(r)}</strong>${tagHtml}<br>
           <small style="color:var(--text-light)">${r.artist}</small>
         </td>
         <td style="width:160px; text-align:center; white-space:nowrap;">
@@ -1676,7 +1688,7 @@
         const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === t.link && playQueue[currentQueueIndex].song === t.song);
         return `<div class="timeline-track ${isCurrent ? 'is-current' : ''}">
           <div class="tr-info">
-            <div class="name">${t.song}</div>
+            <div class="name">${songNameLink(t)}</div>
             <div class="artist">${t.artist || ''}</div>
           </div>
           <div style="display:flex; align-items:center; gap:2px;">
@@ -1734,7 +1746,7 @@
         <td style="text-align:center; width:40px;">
           <button class="btn-table-play" onclick="playSingleTrackInstant('${encodedItem}')">▶</button>
         </td>
-        <td><strong>${r.song}</strong>${tagHtml}<br><small style="color:var(--text-light)">${r.artist || ''}</small></td>
+        <td><strong>${songNameLink(r)}</strong>${tagHtml}<br><small style="color:var(--text-light)">${r.artist || ''}</small></td>
         <td style="color:var(--text-sub); font-size:12px; max-width:240px;">${streamTitleLink(r.title || '-', r)}</td>
         <td style="width:160px; text-align:center; white-space:nowrap;">
           ${favoriteButtonHtml(r, encodedItem)}
@@ -1879,11 +1891,11 @@
             ${favoriteButtonHtml(standardizedItem, encodedItem)}
             <button class="btn-table-more" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
           </div>
-          <h3 title="${s.name}">${s.name}</h3>
+          <h3 title="${s.name}">${songNameLink(standardizedItem)}</h3>
           <p>${s.artist}</p>
           <div class="card-footer">
-            <div style="font-size:11px; color:#aaa; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">最近：${streamTitleLink(s.lastTitle, standardizedItem)}</div>
-            <button onclick="addTrackToQueueDirect('${encodedItem}')" class="play-btn">＋ 將最近版本加入清單</button>
+            <div style="font-size:11px; color:#aaa; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">最近：${recentTitleLink(s.lastTitle, standardizedItem)}</div>
+            <button onclick="addTrackToQueueDirect('${encodedItem}')" class="play-btn">＋ 將最近版本加入播放清單</button>
             <div class="card-actions-row">
               <button onclick="jumpToSearch('${s.name.replace(/'/g, "\\'")}')" class="card-sub-btn">🔍 歷史演唱</button>
               <button onclick="replaceCurrentAndPlay('${encodedItem}')" class="card-sub-btn">▶ 切歌立即播放</button>
@@ -1935,7 +1947,7 @@
         <td style="text-align:center; width:40px;">
           <button class="btn-table-play" onclick="playPlaylistTrackAtIndex('${escapeJs(playlistName)}', ${idx})">▶</button>
         </td>
-        <td><strong>${t.song}</strong><br><small style="color:var(--text-light)">${t.artist || ''}</small></td>
+        <td><strong>${songNameLink(t)}</strong><br><small style="color:var(--text-light)">${t.artist || ''}</small></td>
         <td style="color:var(--text-sub); font-size:12px; max-width:300px;">${streamTitleLink(t.title || '-', t)}</td>
         <td style="width:50px; text-align:center;">
           <button class="btn-table-more" onclick="removeTrackFromPlaylist(event, '${escapeJs(playlistName)}', ${idx})">❌</button>
@@ -2570,6 +2582,10 @@
   }
 
   function buildShareUrl(item) {
+    // 優先使用該首歌的 YouTube 起始時間 URL
+    const ytUrl = songStartUrl(item);
+    if (ytUrl) return ytUrl;
+    // 退路:站內 ?song= 連結
     const base = window.location.origin + window.location.pathname;
     const params = new URLSearchParams();
     params.set('song', item.song || '');
@@ -2918,6 +2934,34 @@
     const url = buildStreamUrl(track);
     if (!url) return safe;
     return `<a href="${url}" target="_blank" rel="noopener" class="stream-title-link" title="在 YouTube 開啟直播" onclick="event.stopPropagation()">${safe}</a>`;
+  }
+
+  // 該首歌的 YouTube 起始時間 URL(帶 t=YYYs)
+  function songStartUrl(track) {
+    if (!track) return null;
+    const videoId = extractVideoId(track.link || '');
+    if (!videoId) return null;
+    const startSec = parseStartSec(track);
+    let url = 'https://www.youtube.com/watch?v=' + videoId;
+    if (startSec > 0) url += '&t=' + startSec + 's';
+    return url;
+  }
+
+  // 把「歌名」包成可點擊的 YouTube 連結(點了開新分頁到該首歌的開始時間)
+  function songNameLink(track) {
+    const safe = String(track.song || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    const url = songStartUrl(track);
+    if (!url) return safe;
+    return `<a href="${url}" target="_blank" rel="noopener" class="song-name-link" title="在 YouTube 從此首歌開始播放" onclick="event.stopPropagation()">${safe}</a>`;
+  }
+
+  // 「最近某直播」連結:顯示文字是直播標題,點下去定位到該首歌的起始時間
+  function recentTitleLink(title, track) {
+    if (!title || title === '-') return title || '-';
+    const safe = String(title).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    const url = songStartUrl(track);
+    if (!url) return safe;
+    return `<a href="${url}" target="_blank" rel="noopener" class="stream-title-link" title="在 YouTube 從這場直播的這首歌開始播放" onclick="event.stopPropagation()">${safe}</a>`;
   }
 
   document.addEventListener('click', hideContextMenu);
