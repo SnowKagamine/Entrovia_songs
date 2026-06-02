@@ -1693,7 +1693,7 @@
           </div>
           <div style="display:flex; align-items:center; gap:2px;">
             ${favoriteButtonHtml(t, encodedItem)}
-            <button class="btn-table-play" title="從這裡開始播放" onclick="playSingleTrackInstant('${encodedItem}')">▶</button>
+            <button class="btn-table-play" title="只播這首(清空當前清單)" onclick="playSingleTrackInstant('${encodedItem}')">▶</button>
             <button class="btn-table-more" title="加入播放清單末端" onclick="addTrackToQueueDirect('${encodedItem}')">＋</button>
             <button class="btn-table-more" title="更多" onclick="showContextMenu(event, '${encodedItem}')">⋮</button>
           </div>
