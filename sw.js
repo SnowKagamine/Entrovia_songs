@@ -1,32 +1,20 @@
 // Antrovia PWA Service Worker
-// Cache strategy:
-//   - Static assets: stale-while-revalidate
-//   - GAS API: no cache (always fresh data)
-//   - YouTube and 3rd party: bypass (no intercept)
+// Strategy:
+//   - Same origin: Network First (always fresh, cache as offline fallback)
+//   - GAS API: bypass (no cache)
+//   - YouTube and 3rd party: bypass
+// No version bump needed: users always get the latest when online.
 
-const CACHE_NAME = 'antrovia-v3';
-const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon.png',
-  './bg.jpg'
-];
+const CACHE_NAME = 'antrovia-runtime';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      // Cache each asset individually so one 404 doesn't break the whole install
-      return Promise.all(STATIC_ASSETS.map(url =>
-        cache.add(url).catch(err => console.warn('SW skip cache:', url, err))
-      ));
-    }).then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
+      // Clean up legacy versioned caches if any
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
@@ -38,7 +26,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // Bypass GAS / YouTube / third party hosts
+  // Bypass GAS / YouTube / third-party hosts
   if (url.hostname.includes('script.google.com') ||
       url.hostname.includes('youtube.com') ||
       url.hostname.includes('ytimg.com') ||
@@ -48,20 +36,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Same origin: stale-while-revalidate
+  // Same origin: Network First with cache fallback
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.open(CACHE_NAME).then((cache) =>
-        cache.match(req).then((cached) => {
-          const fetchPromise = fetch(req).then((networkRes) => {
-            if (networkRes && networkRes.status === 200) {
-              cache.put(req, networkRes.clone()).catch(() => {});
-            }
-            return networkRes;
-          }).catch(() => cached);
-          return cached || fetchPromise;
-        })
-      )
+      fetch(req).then((networkRes) => {
+        // Cache successful response for offline fallback
+        if (networkRes && networkRes.status === 200) {
+          const clone = networkRes.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(req, clone).catch(() => {});
+          });
+        }
+        return networkRes;
+      }).catch(() => {
+        // Offline: fall back to cache
+        return caches.match(req).then(cached => cached || new Response('Offline', { status: 503 }));
+      })
     );
   }
 });
