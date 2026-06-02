@@ -1073,7 +1073,7 @@
     💡 快捷鍵:<span>空白=播放暫停</span> · <span>←/→=快退/快進 5 秒</span> · <span>Shift+←/→=上一首/下一首</span> · <span>↑/↓=音量</span> · <span>M=靜音</span> · <span>/=搜尋</span> · <span>L=清單</span>
   </div>
   <div class="info-row">
-    背景：<a href="https://x.com/CSS74134570" target="_blank">奶油醬油</a> 繪製 (X: @CSS74134570) ｜ Ender安德 委託
+    背景:<a href="https://x.com/mApcm0ElZ9f5BGk" target="_blank">方向</a> ｜ 委託:Ender安德、子廷
   </div>
   <div class="info-row">
     網頁製作者：<a href="https://x.com/SnowKagamine_" target="_blank">玥</a> ｜ 聯絡與問題回饋：<a href="https://forms.google.com/" target="_blank">📝 回饋表單連結</a> ｜ 交流社群：<a href="https://discord.gg/bKwFpPusYj" target="_blank">安特羅迦非官方粉絲群 Discord</a>
@@ -1095,11 +1095,11 @@
   </div>
   <div class="player-center">
     <div class="player-controls">
-      <button class="player-btn-icon" title="隨機播放" id="pb-shuffle" onclick="toggleShuffle()">🔀</button>
+      <button class="player-btn-icon" title="播放清單內隨機播放" id="pb-shuffle" onclick="toggleShuffle()">🔀</button>
       <button class="player-btn-icon" title="上一首" onclick="playPrev()">⏮</button>
       <button class="player-btn-icon btn-main-play" title="播放/暫停" id="pb-play-toggle" onclick="togglePlayPause()"><svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
       <button class="player-btn-icon" title="下一首" onclick="playNext()">⏭</button>
-      <button class="player-btn-icon" title="循環播放" id="pb-repeat" onclick="toggleRepeat()">🔁</button>
+      <button class="player-btn-icon" title="播放清單循環模式" id="pb-repeat" onclick="toggleRepeat()">🔁</button>
     </div>
     <div class="progress-container">
       <span id="pb-current-time">0:00</span>
@@ -1662,7 +1662,6 @@
         const encodedItem = encodeURIComponent(JSON.stringify(t));
         const isCurrent = (currentQueueIndex >= 0 && playQueue[currentQueueIndex] && playQueue[currentQueueIndex].link === t.link && playQueue[currentQueueIndex].song === t.song);
         return `<div class="timeline-track ${isCurrent ? 'is-current' : ''}">
-          <span class="tr-time">${t.startTime || '00:00'}</span>
           <div class="tr-info">
             <div class="name">${t.song}</div>
             <div class="artist">${t.artist || ''}</div>
@@ -2229,7 +2228,7 @@
   function toggleShuffle() {
     isShuffle = !isShuffle;
     document.getElementById('pb-shuffle').classList.toggle('active', isShuffle);
-    showToast(isShuffle ? '🔀 隨機播放開啟' : '🔀 隨機播放關閉');
+    showToast(isShuffle ? '🔀 播放清單內隨機播放:開啟' : '🔀 播放清單內隨機播放:關閉');
   }
 
   function toggleRepeat() {
@@ -2238,7 +2237,7 @@
     btn.classList.remove('active', 'mode-single', 'mode-all');
     if (repeatMode === 0) {
       btn.innerText = "🔁";
-      showToast('🔁 循環關閉');
+      showToast('🔁 播放清單循環:關閉');
     } else if (repeatMode === 1) {
       btn.innerText = "🔂";
       btn.classList.add('active', 'mode-single');
@@ -2246,7 +2245,7 @@
     } else if (repeatMode === 2) {
       btn.innerText = "🔁";
       btn.classList.add('active', 'mode-all');
-      showToast('🔁 整輪循環');
+      showToast('🔁 整份播放清單循環');
     }
   }
 
